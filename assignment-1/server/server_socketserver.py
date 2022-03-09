@@ -4,6 +4,7 @@ import socketserver
 SERVER_HOST = 'localhost'
 SERVER_PORT = 5000
 BUF_SIZE = 1024
+FORMAT = 'utf-8'
 
 class TCPSocketHandler(socketserver.BaseRequestHandler):
   def handle(self):
@@ -16,11 +17,15 @@ class TCPSocketHandler(socketserver.BaseRequestHandler):
       file_path = current_path + r'{}'.format("\\dataset\\") + r'{}'.format(file_name)
 
       if not os.path.exists(file_path):
-        self.request.send("file-doesn't-exist".encode())
+        self.request.send("file doesn't exist".encode())
       
       else:
-        self.request.send("file-exist".encode())
-        print('sending', file_name)
+        self.request.send(("file exist, start sending {}".format(file_name)).encode(FORMAT))
+
+        file_size = os.path.getsize(file_path)
+        header = ("\nfile-name: {},\nfile-size: {},\n\n\n".format(file_name, file_size))
+        self.request.send(header.encode(FORMAT))
+        
         if self.data != '':
           file = open(file_path, 'rb')
           self.data = file.read(BUF_SIZE)

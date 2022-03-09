@@ -2,8 +2,14 @@ import socket
 import sys
 import os
 
-server_address = ('localhost', 5000)
+SERVER_HOST = 'localhost'
+SERVER_PORT = 5000
+BUF_SIZE = 1024
+FORMAT = 'utf-8'
+
+server_address = (SERVER_HOST, SERVER_PORT)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 client_socket.connect(server_address)
 
 sys.stdout.write('>> ')
@@ -15,37 +21,39 @@ try:
     if (cmd[0] == "unduh"):
       client_socket.send(bytes(msg, 'utf-8'))
       response = client_socket.recv(1024).decode('utf-8')
-      if response == "file-doesn't-exist":
+      if response == "file doesn't exist":
         print("file doesn't exist on server.")
 
-        client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect(server_address) 
         
       else:
-          filename = cmd[1][:-1]
-          write_name = 'from_server_'+ filename
+          header = client_socket.recv(256).decode(FORMAT)
+          print(header, end="")
+          
+          file_name = cmd[1][:-1]
+          write_name = 'from_server_'+ file_name
           if os.path.exists(write_name):
             os.remove(write_name)
           
           with open(write_name,'wb') as file:
             while True:
-              data = client_socket.recv(1024)
+              data = client_socket.recv(BUF_SIZE)
               if not data:
                 break
               file.write(data)
-          print(filename, 'successfully downloaded.')
-          client_socket.shutdown(socket.SHUT_RDWR)
+          print(file_name, 'successfully downloaded.')
           client_socket.close()
           client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
           client_socket.connect(server_address) 
+
     else:
       print("command isn't valid, try again.")
       print("usage: unduh [filename]")
+    
     sys.stdout.write('>> ')
 
 except KeyboardInterrupt:
-  client_socket.shutdown(socket.SHUT_RDWR)
   client_socket.close()
   sys.exit(0)
