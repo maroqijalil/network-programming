@@ -7,7 +7,7 @@ SERVER_HOST = 'localhost'
 SERVER_PORT = 5000
 BUF_SIZE = 1024
 FORMAT = 'utf-8'
-DATASET_PATH = os.path.dirname(__file__) + r'{}'.format("\\dataset\\")
+DATASET_PATH = os.path.dirname(__file__) + r'{}'.format("/dataset/")
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
