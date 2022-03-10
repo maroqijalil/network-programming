@@ -59,8 +59,13 @@ class Server():
           else:
             file_size = os.path.getsize(file_path)
 
-            header = (f"\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n")
-            ready_socket.send(header.encode('utf-8'))
+            header = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\nflag').encode('utf-8')
+
+            data = b''
+            with open(file_path, 'rb') as file:
+              data = file.read()
+
+            ready_socket.sendall(header + data)
 
             ready_socket.close()
             self.input_sockets.remove(ready_socket)
