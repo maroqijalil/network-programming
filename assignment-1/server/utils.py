@@ -24,7 +24,11 @@ def handle_send_file(socket, command) -> None:
 
   else:
     if len(data):
-      socket.send(b'file exists but there is someting goes wrong, please try again!')
+      file_size = 0
 
     else:
-      socket.send(b'file doesn\'t exist')
+      file_size = -1
+    
+    data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
+    socket.send(data)
+
