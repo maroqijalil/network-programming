@@ -1,41 +1,21 @@
-import socket
-import threading
 import socketserver
+import sys
+import threading
+import utils
 
 
-class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
+class Server(socketserver.BaseRequestHandler):
   def handle(self):
-    data = str(self.request.recv(1024), "ascii")
-    cur_thread = threading.current_thread()
-    response = bytes("{}: {}".format(cur_thread.name, data), "ascii")
-    self.request.sendall(response)
+    data = self.request.recv(1024)
+    print(self.client_address, data.decode('utf-8'))
 
-
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-  pass
-
-
-def client(ip, port, message):
-  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.connect((ip, port))
-    sock.sendall(bytes(message, "ascii"))
-    response = str(sock.recv(1024), "ascii")
-    print("Received: {}".format(response))
+    utils.handle_send_file(self.request, data)
 
 
 if __name__ == "__main__":
-  HOST, PORT = "localhost", 9999
+  with socketserver.TCPServer(('localhost', 5000), Server) as server:
+    try:
+      server.serve_forever()
 
-  server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-  with server:
-    ip, port = server.server_address
-
-    server_thread = threading.Thread(target=server.serve_forever)
-    server_thread.daemon = True
-    server_thread.start()
-
-    client(ip, port, "Hello World 1")
-    client(ip, port, "Hello World 2")
-    client(ip, port, "Hello World 3")
-
-    server.shutdown()
+    except KeyboardInterrupt:
+      sys.exit(0)

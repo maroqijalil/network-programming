@@ -9,8 +9,6 @@ class Client():
 
     self.server_host = host
     self.server_port = port
-    
-    self.files_path = os.path.dirname(__file__) + "/dataset/"
   
   def __del__(self):
     self.socket.close()
