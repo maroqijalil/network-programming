@@ -1,3 +1,4 @@
+from operator import le
 import os
 import socket
 import sys
@@ -33,7 +34,7 @@ class Client():
   def command(self, command) -> None:
     commands = command.split(" ")
 
-    if (commands[0] == "unduh"):
+    if (commands[0] == "unduh" and len(commands) >= 2):
       self.socket.send(command.encode('utf-8'))
       utils.handle_receive_file(self.socket)
 

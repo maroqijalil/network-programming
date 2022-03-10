@@ -40,16 +40,21 @@ def handle_receive_file(socket) -> None:
   header_size, file_name, file_size = validate_header(socket)
 
   if header_size != 0:
-    print(f'downloading {file_name} ...')
+    if file_size == 0:
+      print("file exists but there is someting goes wrong, please try again!")
+    elif file_size == -1:
+      print("file doesn't exist")
+    else:
+      print(f'downloading {file_name} ...')
 
-    data = b''
-    while len(data) < file_size:
-      reponse = socket.recv(file_size - len(data))
+      data = b''
+      while len(data) < file_size:
+        reponse = socket.recv(file_size - len(data))
 
-      if reponse:
-        data += reponse
+        if reponse:
+          data += reponse
 
-    with open(os.path.dirname(__file__) + "/dataset/" + file_name, 'wb') as file:
-      file.write(data)
+      with open(os.path.dirname(__file__) + "/dataset/" + file_name, 'wb') as file:
+        file.write(data)
 
-      print(f'{file_name} downloaded')
+        print(f'{file_name} downloaded')
