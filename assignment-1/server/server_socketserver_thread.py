@@ -7,25 +7,18 @@ import utils
 
 class Server(socketserver.BaseRequestHandler):
   def handle(self):
-    print(threading.current_thread().name, end="")
+    try:
+      data = self.request.recv(1024)
+      if data:
+        print(self.client_address, data.decode('utf-8'))
 
-    while True:
-      try:
-        data = self.request.recv(1024)
-        if data:
-          print(self.client_address, data.decode('utf-8'))
+        utils.handle_send_file(self.request, data)
 
-          utils.handle_send_file(self.request, data)
-        else:
-          self.request.close()
-          break
+      else:
+        self.request.close()
 
-      except Exception as e:
-        print(e)
-        break
-  
-      except KeyboardInterrupt:
-        sys.exit(0)
+    except Exception:
+      return
 
 
 class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

@@ -3,7 +3,7 @@ import os
 
 def handle_send_file(socket, command) -> None:
   commands = command.decode('utf-8').split(" ")
-  file_name = commands[1][:-1]
+  file_name = commands[1]
   file_path = os.path.dirname(__file__) + "/dataset/" + file_name
 
   state = False
