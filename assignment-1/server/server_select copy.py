@@ -67,9 +67,6 @@ class Server():
 
             ready_socket.sendall(header + data)
 
-            ready_socket.close()
-            self.input_sockets.remove(ready_socket)
-
         else:
           ready_socket.close()
           self.input_sockets.remove(ready_socket)
