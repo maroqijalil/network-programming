@@ -1,3 +1,4 @@
+import argparse
 import socketserver
 import sys
 import utils
@@ -12,7 +13,13 @@ class Server(socketserver.BaseRequestHandler):
 
 
 if __name__ == "__main__":
-  with socketserver.TCPServer(('localhost', 5001), Server) as server:
+  parser = argparse.ArgumentParser(description='Run TCPServer on defined host and port')
+  parser.add_argument('--host', help='specify the host that will be used', type=str, default='localhost')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=5002)
+
+  args = parser.parse_args()
+
+  with socketserver.TCPServer((args.host, args.port), Server) as server:
     try:
       server.serve_forever()
 

@@ -1,12 +1,14 @@
+import argparse
 import socketserver
 import sys
 import threading
 import utils
 
 
-class ThreadedServer(socketserver.BaseRequestHandler):
+class Server(socketserver.BaseRequestHandler):
   def handle(self):
-    print(threading.current_thread().name, self.request.getpeername(), end="")
+    print(threading.current_thread().name, end="")
+
     while True:
       try:
         data = self.request.recv(1024)
@@ -17,22 +19,33 @@ class ThreadedServer(socketserver.BaseRequestHandler):
         else:
           self.request.close()
           break
+
       except Exception as e:
         print(e)
         break
-
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    pass
   
+      except KeyboardInterrupt:
+        sys.exit(0)
+
+
+class ThreadedServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
+
+
 if __name__ == "__main__":
-  server =  ThreadedTCPServer(('localhost', 5001), ThreadedServer)
+  parser = argparse.ArgumentParser(description='Run TCPServer on defined host and port')
+  parser.add_argument('--host', help='specify the host that will be used', type=str, default='localhost')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=5002)
+
+  args = parser.parse_args()
+
+  server = ThreadedServer((args.host, args.port), Server)
+
   try:
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.daemon = False
     server_thread.start()
-    print(len(threading.enumerate()))
   
   except KeyboardInterrupt:
-      server_thread.daemon = True
-      server.shutdown()
-      sys.exit(0)
+    server.shutdown()
+    sys.exit(0)

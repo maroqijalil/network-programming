@@ -1,5 +1,8 @@
+import argparse
 import socket
 import sys
+
+from parso import parse
 import utils
 
 class Client():
@@ -38,12 +41,18 @@ class Client():
       print("usage: unduh [filename]")
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Connect TCPClient on defined host and port')
+  parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=5001)
+
+  args = parser.parse_args()
+
+  client = Client(args.host, args.port)
+
   try:
-    client = Client('localhost', 5001)
-    while True:
-      if client.connect():
-        sys.stdout.write('>> ')
-        client.command(sys.stdin.readline())
+    if client.connect():
+      print('>> ', end='')
+      client.command(input())
 
   except KeyboardInterrupt:
     sys.exit(0)

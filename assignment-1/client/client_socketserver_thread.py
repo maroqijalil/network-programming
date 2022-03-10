@@ -1,15 +1,12 @@
+import argparse
 import socket
 import sys
 import utils
 
+
 class Client():
   def __init__(self, host, port) -> None:
-    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    except AttributeError:
-      pass
+    self.socket = None
 
     self.server_host = host
     self.server_port = port
@@ -19,6 +16,14 @@ class Client():
   
   def connect(self) -> bool:
     try:
+      self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      try:
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+      except AttributeError:
+        pass
+
       self.socket.connect((self.server_host, self.server_port))
 
       return True
@@ -36,22 +41,25 @@ class Client():
     else:
       print("command isn't valid, try again.")
       print("usage: unduh [filename]")
-    self.socket.close() # for multi download
+
+    self.socket.close()
+
+
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Connect TCPClient on defined host and port')
+  parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=5002)
+
+  args = parser.parse_args()
+
+  client = Client(args.host, args.port)
+
   try:
-    client = Client('localhost', 5001)
     while True:
       if client.connect():
-        sys.stdout.write('>> ')
-        client.command(sys.stdin.readline())
-      else: # for multi download
-        client.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-          client.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        except AttributeError:
-          pass
+        print('>> ', end='')
+        client.command(input())
 
   except KeyboardInterrupt:
     sys.exit(0)

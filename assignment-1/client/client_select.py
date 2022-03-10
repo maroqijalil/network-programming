@@ -1,3 +1,4 @@
+import argparse
 import socket
 import sys
 import utils
@@ -40,13 +41,19 @@ class Client():
 
 
 if __name__ == '__main__':
-  client = Client('localhost', 5000)
+  parser = argparse.ArgumentParser(description='Connect TCPClient on defined host and port')
+  parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=5000)
+
+  args = parser.parse_args()
+
+  client = Client(args.host, args.port)
 
   try:
     if client.connect():
       while True:
-        sys.stdout.write('>> ')
-        client.command(sys.stdin.readline())
+        print('>> ', end='')
+        client.command(input())
 
   except KeyboardInterrupt:
     sys.exit(0)
