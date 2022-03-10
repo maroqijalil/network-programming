@@ -40,7 +40,7 @@ class Client():
 
 
 if __name__ == '__main__':
-  client = Client('localhost', 5000)
+  client = Client('localhost', 5001)
 
   try:
     if client.connect():

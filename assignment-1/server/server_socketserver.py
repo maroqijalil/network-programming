@@ -1,6 +1,5 @@
 import socketserver
 import sys
-import threading
 import utils
 
 
@@ -13,7 +12,7 @@ class Server(socketserver.BaseRequestHandler):
 
 
 if __name__ == "__main__":
-  with socketserver.TCPServer(('localhost', 5000), Server) as server:
+  with socketserver.TCPServer(('localhost', 5001), Server) as server:
     try:
       server.serve_forever()
 
