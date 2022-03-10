@@ -1,59 +1,56 @@
+from operator import le
+import os
 import socket
 import sys
-import os
+import utils
 
-SERVER_HOST = 'localhost'
-SERVER_PORT = 5000
-BUF_SIZE = 1024
-FORMAT = 'utf-8'
+class Client():
+  def __init__(self, host, port) -> None:
+    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-server_address = (SERVER_HOST, SERVER_PORT)
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-client_socket.connect(server_address)
+    self.server_host = host
+    self.server_port = port
+    
+    self.files_path = os.path.dirname(__file__) + "/dataset/"
+  
+  def __del__(self):
+    self.socket.close()
+  
+  def connect(self) -> bool:
+    try:
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      try:
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+      except AttributeError:
+        pass
 
-sys.stdout.write('>> ')
+      self.socket.connect((self.server_host, self.server_port))
 
-try:
-  while True:
-    msg = sys.stdin.readline()
-    cmd = msg.split(" ")
-    if (cmd[0] == "unduh"):
-      client_socket.send(bytes(msg, 'utf-8'))
-      response = client_socket.recv(1024).decode('utf-8')
-      if response == "file doesn't exist":
-        print("file doesn't exist on server.")
+      return True
 
-        client_socket.close()
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect(server_address) 
-        
-      else:
-          header = client_socket.recv(256).decode(FORMAT)
-          print(header, end="")
-          
-          file_name = cmd[1][:-1]
-          write_name = 'from_server_'+ file_name
-          if os.path.exists(write_name):
-            os.remove(write_name)
-          
-          with open(write_name,'wb') as file:
-            while True:
-              data = client_socket.recv(BUF_SIZE)
-              if not data:
-                break
-              file.write(data)
-          print(file_name, 'successfully downloaded.')
-          client_socket.close()
-          client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-          client_socket.connect(server_address) 
+    except Exception:
+      return False
+  
+  def command(self, command) -> None:
+    commands = command.split(" ")
+
+    if (commands[0] == "unduh" and len(commands) >= 2):
+      self.socket.send(command.encode('utf-8'))
+      utils.handle_receive_file(self.socket)
 
     else:
       print("command isn't valid, try again.")
       print("usage: unduh [filename]")
-    
-    sys.stdout.write('>> ')
 
-except KeyboardInterrupt:
-  client_socket.close()
-  sys.exit(0)
+
+if __name__ == '__main__':
+  client = Client('localhost', 5000)
+
+  try:
+    if client.connect():
+      while True:
+        sys.stdout.write('>> ')
+        client.command(sys.stdin.readline())
+
+  except KeyboardInterrupt:
+    sys.exit(0)
