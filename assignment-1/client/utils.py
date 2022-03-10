@@ -1,5 +1,6 @@
 import os
 import re
+from tqdm import tqdm
 
 
 def validate_header(socket) -> bool:
@@ -45,16 +46,16 @@ def handle_receive_file(socket) -> None:
     elif file_size == -1:
       print("file doesn't exist")
     else:
-      print(f'downloading {file_name} ...')
-
+      bar = tqdm(range(file_size), f"downloading {file_name}", unit="B", unit_scale=True, unit_divisor=round(1024))
       data = b''
+
       while len(data) < file_size:
         reponse = socket.recv(file_size - len(data))
 
         if reponse:
           data += reponse
+        
+        bar.update(len(data))
 
       with open(os.path.dirname(__file__) + "/dataset/" + file_name, 'wb') as file:
         file.write(data)
-
-        print(f'{file_name} downloaded')

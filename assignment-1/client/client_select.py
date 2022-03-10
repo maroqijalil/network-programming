@@ -3,6 +3,7 @@ import socket
 import sys
 import utils
 
+
 class Client():
   def __init__(self, host, port) -> None:
     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
