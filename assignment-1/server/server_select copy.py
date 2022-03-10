@@ -2,6 +2,7 @@ import socket
 import select
 import sys
 import os
+import utils
 
 
 class Server():
@@ -12,8 +13,6 @@ class Server():
     self.port = port
 
     self.input_sockets = []
-    
-    self.files_path = os.path.dirname(__file__) + "/dataset/"
   
   def __del__(self):
     self.socket.close()
@@ -50,30 +49,24 @@ class Server():
           print(ready_socket.getpeername(), data.decode('utf-8'))
 
           if data:
-            commands = data.decode('utf-8').split(" ")
-            file_name = commands[1][:-1]
-            file_path = self.files_path + file_name
+            state, data = utils.handle_send_file(data)
 
-            if not os.path.exists(file_path):
-              ready_socket.send(b'file doesn\'t exist')
-
+            if state:
+              ready_socket.sendall(data)
+            
             else:
-              file_size = os.path.getsize(file_path)
+              if len(data):
+                ready_socket.send(b'file exists but there is someting goes wrong, please try again!')
 
-              header = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\nflag').encode('utf-8')
-
-              data = b''
-              with open(file_path, 'rb') as file:
-                data = file.read()
-
-              ready_socket.sendall(header + data)
+              else:
+                ready_socket.send(b'file doesn\'t exist')
 
           else:
             ready_socket.close()
             self.input_sockets.remove(ready_socket)
 
         except socket.error:
-          print(ready_socket.getpeername(), 'has left')
+          print(ready_socket.getpeername(), 'left the server')
 
           ready_socket.close()
           self.input_sockets.remove(ready_socket)

@@ -24,7 +24,7 @@ def client(ip, port, message):
 
 
 if __name__ == "__main__":
-  HOST, PORT = "localhost", 0
+  HOST, PORT = "localhost", 9999
 
   server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
   with server:
