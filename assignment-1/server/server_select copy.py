@@ -49,17 +49,7 @@ class Server():
           print(ready_socket.getpeername(), data.decode('utf-8'))
 
           if data:
-            state, data = utils.handle_send_file(data)
-
-            if state:
-              ready_socket.sendall(data)
-            
-            else:
-              if len(data):
-                ready_socket.send(b'file exists but there is someting goes wrong, please try again!')
-
-              else:
-                ready_socket.send(b'file doesn\'t exist')
+            utils.handle_send_file(ready_socket, data)
 
           else:
             ready_socket.close()

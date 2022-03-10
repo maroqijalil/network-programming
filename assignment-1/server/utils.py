@@ -1,7 +1,7 @@
 import os
 
 
-def handle_send_file(commands) -> bool:
+def handle_send_file(socket, commands) -> bool:
   commands = data.decode('utf-8').split(" ")
   file_name = commands[1][:-1]
   file_path = os.path.dirname(__file__) + "/dataset/" + file_name
@@ -18,5 +18,13 @@ def handle_send_file(commands) -> bool:
       data += file.read()
 
       state = True
+  
+  if state:
+    socket.sendall(data)
 
-  return state, data
+  else:
+    if len(data):
+      socket.send(b'file exists but there is someting goes wrong, please try again!')
+
+    else:
+      socket.send(b'file doesn\'t exist')
