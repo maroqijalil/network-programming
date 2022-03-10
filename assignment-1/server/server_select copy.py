@@ -45,29 +45,36 @@ class Server():
         self.input_sockets.append(client_socket)
       
       else:
-        data = ready_socket.recv(1024).decode('utf-8')
-        print(ready_socket.getpeername(), data)
+        try:
+          data = ready_socket.recv(1024)
+          print(ready_socket.getpeername(), data.decode('utf-8'))
 
-        if data:
-          commands = data.split(" ")
-          file_name = commands[1][:-1]
-          file_path = self.files_path + file_name
+          if data:
+            commands = data.decode('utf-8').split(" ")
+            file_name = commands[1][:-1]
+            file_path = self.files_path + file_name
 
-          if not os.path.exists(file_path):
-            ready_socket.send(b'file doesn\'t exist')
+            if not os.path.exists(file_path):
+              ready_socket.send(b'file doesn\'t exist')
+
+            else:
+              file_size = os.path.getsize(file_path)
+
+              header = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\nflag').encode('utf-8')
+
+              data = b''
+              with open(file_path, 'rb') as file:
+                data = file.read()
+
+              ready_socket.sendall(header + data)
 
           else:
-            file_size = os.path.getsize(file_path)
+            ready_socket.close()
+            self.input_sockets.remove(ready_socket)
 
-            header = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\nflag').encode('utf-8')
+        except socket.error:
+          print(ready_socket.getpeername(), 'has left')
 
-            data = b''
-            with open(file_path, 'rb') as file:
-              data = file.read()
-
-            ready_socket.sendall(header + data)
-
-        else:
           ready_socket.close()
           self.input_sockets.remove(ready_socket)
 
