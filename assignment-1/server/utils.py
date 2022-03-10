@@ -31,4 +31,3 @@ def handle_send_file(socket, command) -> None:
     
     data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
     socket.send(data)
-

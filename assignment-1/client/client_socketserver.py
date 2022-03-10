@@ -1,9 +1,8 @@
 import argparse
 import socket
 import sys
-
-from parso import parse
 import utils
+
 
 class Client():
   def __init__(self, host, port) -> None:
@@ -39,6 +38,7 @@ class Client():
     else:
       print("command isn't valid, try again.")
       print("usage: unduh [filename]")
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect TCPClient on defined host and port')
