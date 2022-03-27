@@ -1,5 +1,6 @@
 import re
 from utils import HttpClient
+from bs4 import BeautifulSoup
 
 
 def run_program(using_ssl):
@@ -45,3 +46,16 @@ if __name__ == '__main__':
   print("")
   print("Using SSL")
   run_program(True)
+
+  print("Get-Menus:")
+  client = HttpClient("classroom.its.ac.id", True)
+  body = client.request_route('/')
+  soup = BeautifulSoup(body, features="lxml")
+
+  for tag in soup.nav.ul.find_all('li'):
+    sub_soup = BeautifulSoup(str(tag), features="lxml")
+    print(sub_soup.find('a', {'class': 'dropdown-toggle'}).text)
+
+    sub_soup = BeautifulSoup(str(tag), features="lxml")
+    for subtag in sub_soup.find_all('a', {'class': 'dropdown-item'}):
+      print(BeautifulSoup(str(subtag), features="lxml").text)
