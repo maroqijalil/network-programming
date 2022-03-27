@@ -26,8 +26,3 @@ class HttpClient:
         return responses[0], responses[1]
 
       return responses[0]
-
-
-if __name__ == '__main__':
-  client = HttpClient("www.its.ac.id")
-  header, body = client.request_route('/')
