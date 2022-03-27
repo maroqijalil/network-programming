@@ -2,9 +2,9 @@ import re
 from utils import HttpClient
 
 
-if __name__ == '__main__':
-  client = HttpClient("www.its.ac.id")
-  header, _ = client.request_route('/')
+def run_program(using_ssl):
+  client = HttpClient("www.its.ac.id", using_ssl)
+  header = client.request_route('/', using_ssl)
 
   print("Host: www.its.ac.id")
   response_statuses = header.splitlines()[0].split(' ')
@@ -23,8 +23,8 @@ if __name__ == '__main__':
   print(content_encoding)
   print(f'HTTP-Version: {response_statuses[0]}')
   
-  client = HttpClient("classroom.its.ac.id")
-  header, _ = client.request_route('/')
+  client = HttpClient("classroom.its.ac.id", using_ssl)
+  header = client.request_route('/', using_ssl)
 
   print("")
   print("Host: classroom.its.ac.id")
@@ -37,3 +37,11 @@ if __name__ == '__main__':
         print(contents[0][8:])
       else:
         print("")
+
+
+if __name__ == '__main__':
+  run_program(False)
+
+  print("")
+  print("Using SSL")
+  run_program(True)
