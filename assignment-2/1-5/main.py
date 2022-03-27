@@ -4,7 +4,7 @@ from utils import HttpClient
 
 def run_program(using_ssl):
   client = HttpClient("www.its.ac.id", using_ssl)
-  header = client.request_route('/', using_ssl)
+  header = client.request_header_route('/')
 
   print("Host: www.its.ac.id")
   response_statuses = header.splitlines()[0].split(' ')
@@ -24,7 +24,7 @@ def run_program(using_ssl):
   print(f'HTTP-Version: {response_statuses[0]}')
   
   client = HttpClient("classroom.its.ac.id", using_ssl)
-  header = client.request_route('/', using_ssl)
+  header = client.request_header_route('/')
 
   print("")
   print("Host: classroom.its.ac.id")

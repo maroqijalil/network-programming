@@ -16,8 +16,8 @@ class HttpClient:
 
     self.address = address
 
-  def request_route(self, route, header_only = False):
-    self.socket.sendall((f'GET {route} HTTP/1.1\r\nHost: {self.address}\r\nConnection: close\r\n\r\n').encode('utf-8'))
+  def request_header_route(self, route):
+    self.socket.sendall((f'GET {route} HTTP/1.1\r\nHost: {self.address}\r\nConnection: close\r\nAccept: text/html\r\nAccept-Encoding: gzip, deflate, br\r\n\r\n').encode('utf-8'))
 
     response = ''
     header_flag = 0
@@ -36,13 +36,7 @@ class HttpClient:
 
       response += buffer.decode('utf-8')
 
-      if (header_flag >= 3) and header_only:
+      if header_flag >= 3:
         break
 
-    if header_only:
-      return response[:-3]
-    else:
-      responses = response.split('\r\n\r\n')
-
-      if len(responses) > 0:
-        return responses[0]
+    return response[:-3]
