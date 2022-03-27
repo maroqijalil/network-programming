@@ -18,7 +18,14 @@ class HttpClient:
     self.address = address
 
   def request_header_route(self, route):
-    self.socket.sendall((f'GET {route} HTTP/1.1\r\nHost: {self.address}\r\nConnection: close\r\nAccept: text/html\r\nAccept-Encoding: gzip, deflate, br\r\n\r\n').encode('utf-8'))
+    self.socket.sendall((
+        f'GET {route} HTTP/1.1\r\n'
+        f'Host: {self.address}\r\n'
+        'Connection: close\r\n'
+        'Accept: text/html\r\n'
+        'Accept-Encoding: gzip, deflate, br\r\n'
+        '\r\n'
+      ).encode('utf-8'))
 
     response = ''
     header_flag = 0
@@ -43,7 +50,13 @@ class HttpClient:
     return response[:-3]
 
   def request_route(self, route):
-    self.socket.sendall((f'GET {route} HTTP/1.1\r\nHost: {self.address}\r\nConnection: close\r\nAccept: text/html\r\n\r\n').encode('utf-8'))
+    self.socket.sendall((
+        f'GET {route} HTTP/1.1\r\n'
+        f'Host: {self.address}\r\n'
+        'Connection: close\r\n'
+        'Accept: text/html\r\n'
+        '\r\n'
+      ).encode('utf-8'))
 
     response = b''
     header_flag = 0
