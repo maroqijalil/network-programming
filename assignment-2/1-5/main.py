@@ -54,8 +54,20 @@ if __name__ == '__main__':
 
   for tag in soup.nav.ul.find_all('li'):
     sub_soup = BeautifulSoup(str(tag), features="lxml")
-    print(sub_soup.find('a', {'class': 'dropdown-toggle'}).text)
+    list = sub_soup.find('a', {'class': 'dropdown-toggle'}).text.split(' ')
 
-    sub_soup = BeautifulSoup(str(tag), features="lxml")
+    for item in list:
+      if item != '\n':
+        if len(item) > 0:
+          print(item, end=" ")
+
     for subtag in sub_soup.find_all('a', {'class': 'dropdown-item'}):
-      print(BeautifulSoup(str(subtag), features="lxml").text)
+      list = BeautifulSoup(str(subtag), features="lxml").text.split(' ')
+
+      print("  ", end="")
+      for item in list:
+        if item != '\n':
+          if len(item) > 0:
+            print(item, end=" ")
+
+      print("")
