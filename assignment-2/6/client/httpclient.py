@@ -49,6 +49,14 @@ class Response:
 
     return length
 
+  def get_content_type(self) -> str:
+    type = ''
+    for line in self.header.splitlines():
+      if line.__contains__('Content-Type'):
+        type = line.split()[1]
+
+    return type
+
   def process_body(self, buffer) -> int:
     self.body += buffer.decode('utf-8')
 
@@ -81,7 +89,7 @@ class HttpClient:
     except Exception:
       return False
 
-  def get(self, route):
+  def get_response(self, route) -> Response:
     request = Request()
     request.route = route
     request.host = self.server_host
@@ -102,8 +110,20 @@ class HttpClient:
       buffer = self.socket.recv(body_length - get_length)
       get_length = response.process_body(buffer)
 
-    
-    soup = BeautifulSoup(response.body, features="lxml")
-    for line in soup.get_text().splitlines():
-      if (len(line) > 0) and (line != '\n'):
-        print(line)
+    return response
+
+  def get(self, route):
+    response = self.get_response(route)
+
+    if response.get_content_type().__contains__('html'):
+      soup = BeautifulSoup(response.body, features="lxml")
+      for line in soup.get_text().splitlines():
+        if (len(line) > 0) and (line != '\n'):
+          print(line)
+
+    else:
+      print("do you try to download a file?")
+      print("use: unduh [filename]")
+
+  def download(self, route):
+    response = self.get_response(route)

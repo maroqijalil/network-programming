@@ -15,3 +15,11 @@ def create_route_file(filepath, additional_route = []) -> Route:
     routes=[filepath] + additional_route,
     response_callback=create_response
   )
+
+routes: List[Route] = [
+  create_route_file('/index.html', ['/', 'index.html']),
+  create_route_file('/dataset/brain.jpeg'),
+  create_route_file('/dataset/lagu.mp3'),
+  create_route_file('/dataset/project.pdf'),
+  create_route_file('/dataset/test.txt')
+]

@@ -12,7 +12,8 @@ if __name__ == '__main__':
     int(config['server']['port'])
   )
 
-  server.add_route(routes.create_route_file('/index.html', ['/', 'index.html']))
+  for route in routes.routes:
+    server.add_route(route)
 
   try:
     if server.connect():

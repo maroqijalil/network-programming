@@ -1,4 +1,6 @@
 import argparse
+
+from click import command
 from httpclient import HttpClient
 import sys
 
@@ -16,7 +18,18 @@ if __name__ == '__main__':
     if client.connect():
       while True:
         print('>> ', end='')
-        client.get(input())
+        commands = input().split(' ')
+
+        if len(commands) > 1:
+          if commands[0] == "unduh":
+            client.download(command[1])
+
+          else:
+            print("command isn't valid, try again.")
+            print("usage: unduh [filename]")
+
+        else:
+          client.get(commands[0])
 
   except KeyboardInterrupt:
     sys.exit(0)
