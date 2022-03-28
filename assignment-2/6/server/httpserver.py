@@ -10,7 +10,7 @@ class Response:
     self.status = 'OK'
 
     self.type = ''
-    self.data_length = 0
+    self.content_length = 0
 
     self.body = ''
 
@@ -18,7 +18,7 @@ class Response:
     return (
       f'HTTP/1.1 {self.status_code} {self.status}\r\n'
       f'Content-Type: {self.type}\r\n'
-      f'Content-Length: {self.data_length}\r\n'
+      f'Content-Length: {self.content_length}\r\n'
       '\r\n'
       + self.body
     ).encode('utf-8')
@@ -38,7 +38,7 @@ class Response:
     if response.type == "text/html":
       response.type += "; charset=utf-8"
 
-    response.data_length = len(content)
+    response.content_length = len(content)
     response.body = content
 
     return response
@@ -59,11 +59,11 @@ class Route:
     self.response_callback = response_callback
 
   def is_match(self, response) -> bool:
-    print(response)
-
     data = response.decode("utf-8")
     request_header = data.split("\r\n")
     requested_route = request_header[0].split()[1]
+
+    print(request_header[0])
 
     if len(self.routes) > 0:
       for route in self.routes:
@@ -119,6 +119,9 @@ class HttpServer:
 
         else:
           request = ready_socket.recv(4096)
+
+          print(ready_socket.getpeername(), end=": ")
+
           is_match = False
 
           response = b''
