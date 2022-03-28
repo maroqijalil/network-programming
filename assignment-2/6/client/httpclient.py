@@ -1,5 +1,7 @@
+import os
 from bs4 import BeautifulSoup
 import socket
+from tqdm import tqdm
 
 
 class Request:
@@ -19,7 +21,7 @@ class Request:
 class Response:
   def __init__(self):
     self.header = ''
-    self.body = ''
+    self.body = b''
     
     self.header_flag = 0
 
@@ -36,7 +38,7 @@ class Response:
     else:
       self.header_flag = 0
 
-    if self.header_flag >= 3:
+    if self.header_flag > 3:
       return True
 
     return False
@@ -58,7 +60,7 @@ class Response:
     return type
 
   def process_body(self, buffer) -> int:
-    self.body += buffer.decode('utf-8')
+    self.body += buffer
 
     return len(self.body)
 
@@ -89,7 +91,7 @@ class HttpClient:
     except Exception:
       return False
 
-  def get_response(self, route) -> Response:
+  def get_response(self, route, for_download = False) -> Response:
     request = Request()
     request.route = route
     request.host = self.server_host
@@ -106,24 +108,47 @@ class HttpClient:
     body_length = response.get_content_length()
     get_length = 0
 
+    bar = None
+    if for_download:
+      bar = tqdm(
+        range(body_length),
+        f"downloading {route}",
+        unit="B",
+        unit_scale=True,
+        unit_divisor=round(1024)
+      )
+
     while get_length < body_length:
       buffer = self.socket.recv(body_length - get_length)
       get_length = response.process_body(buffer)
 
+      if for_download:
+        bar.update(get_length)
+
     return response
+
+  def handle_html(self, response: Response):
+    soup = BeautifulSoup(response.body.decode('utf-8'), features="lxml")
+    for line in soup.get_text().splitlines():
+      if (len(line) > 0) and (line != '\n'):
+        print(line)
 
   def get(self, route):
     response = self.get_response(route)
 
     if response.get_content_type().__contains__('html'):
-      soup = BeautifulSoup(response.body, features="lxml")
-      for line in soup.get_text().splitlines():
-        if (len(line) > 0) and (line != '\n'):
-          print(line)
+      self.handle_html(response)
 
     else:
       print("do you try to download a file?")
-      print("use: unduh [filename]")
+      print("use: unduh [route or path to file]")
 
   def download(self, route):
-    response = self.get_response(route)
+    response = self.get_response(route, True)
+
+    if response.get_content_type().__contains__('html'):
+      self.handle_html(response)
+
+    else:
+      with open(os.path.dirname(__file__) + route, 'wb') as file:
+        file.write(response.body)

@@ -1,3 +1,4 @@
+import os
 from magic import Magic
 import socket
 import select
@@ -12,24 +13,25 @@ class Response:
     self.type = ''
     self.content_length = 0
 
-    self.body = ''
+    self.body = b''
 
   def create(self) -> bytes:
-    return (
+    header = (
       f'HTTP/1.1 {self.status_code} {self.status}\r\n'
       f'Content-Type: {self.type}\r\n'
       f'Content-Length: {self.content_length}\r\n'
       '\r\n'
-      + self.body
     ).encode('utf-8')
+
+    return header + self.body
 
   @staticmethod
   def get_file_response(filename):
     response = Response()
-    filename = '.' + filename
+    filename = os.path.dirname(__file__) + filename
     
     content = ''
-    with open(filename, 'r') as file:
+    with open(filename, 'rb') as file:
       content = file.read()
 
     mime = Magic(mime=True)
@@ -60,6 +62,7 @@ class Route:
 
   def is_match(self, response) -> bool:
     data = response.decode("utf-8")
+    print(data)
     request_header = data.split("\r\n")
     requested_route = request_header[0].split()[1]
 

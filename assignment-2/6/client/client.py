@@ -1,6 +1,4 @@
 import argparse
-
-from click import command
 from httpclient import HttpClient
 import sys
 
@@ -22,11 +20,11 @@ if __name__ == '__main__':
 
         if len(commands) > 1:
           if commands[0] == "unduh":
-            client.download(command[1])
+            client.download(commands[1])
 
           else:
-            print("command isn't valid, try again.")
-            print("usage: unduh [filename]")
+            print("command isn't valid, try again!")
+            print("usage: unduh [route or path to file]")
 
         else:
           client.get(commands[0])
