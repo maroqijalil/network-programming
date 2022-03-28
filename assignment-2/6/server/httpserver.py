@@ -1,3 +1,4 @@
+from magic import Magic
 import socket
 import select
 from typing import Callable, List
@@ -15,26 +16,38 @@ class Response:
 
   def create(self) -> bytes:
     return (
-      b'HTTP/1.1 {self.status_code} {self.status}\r\n'
-      b'Content-Type: {self.type}\r\n'
-      b'Content-Length: {self.data_length}\r\n'
-      b'\r\n'
-      + self.body.encode('utf-8')
-    )
+      f'HTTP/1.1 {self.status_code} {self.status}\r\n'
+      f'Content-Type: {self.type}\r\n'
+      f'Content-Length: {self.data_length}\r\n'
+      '\r\n'
+      + self.body
+    ).encode('utf-8')
 
   @staticmethod
-  def get_404_response() -> Response:
+  def get_file_response(filename):
     response = Response()
     
     content = ''
-    with open('./404.html', 'r') as file:
+    with open(filename, 'r') as file:
       content = file.read()
+
+    mime = Magic(mime=True)
+
+    response.type = mime.from_file(filename)
+    if response.type == "text/html":
+      response.type += "; charset=utf-8"
+
+    response.data_length = len(content)
+    response.body = content
+
+    return response
+
+  @staticmethod
+  def get_404_response():
+    response = Response.get_file_response('./404.html')
 
     response.status_code = 404
     response.status = 'Not found'
-    response.type = 'text/html; charset=UTF-8'
-    response.data_length = len(content)
-    response.body = content
 
     return response
 
@@ -93,26 +106,27 @@ class HttpServer:
       return False
 
   def run(self):
-    read_ready_sockets, _, _ = select.select(self.input_sockets, [], [])
+    while True:
+      read_ready_sockets, _, _ = select.select(self.input_sockets, [], [])
 
-    for ready_socket in read_ready_sockets:
-      if ready_socket == self.socket:
-        client_socket, _ = self.socket.accept()
-        self.input_sockets.append(client_socket)
+      for ready_socket in read_ready_sockets:
+        if ready_socket == self.socket:
+          client_socket, _ = self.socket.accept()
+          self.input_sockets.append(client_socket)
 
-      else:
-        request = ready_socket.recv(4096)
-        is_match = False
+        else:
+          request = ready_socket.recv(4096)
+          is_match = False
 
-        response = b''
-        for route in self.routes:
-          if route.is_match(request):
-            response = route.response_callback().create()
-            is_match = True
+          response = b''
+          for route in self.routes:
+            if route.is_match(request):
+              response = route.response_callback().create()
+              is_match = True
 
-            break
+              break
 
-        if not is_match:
-          response = Response.get_404_response().create()
+          if not is_match:
+            response = Response.get_404_response().create()
 
-        self.socket.sendall(response)
+          self.socket.sendall(response)

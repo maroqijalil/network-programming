@@ -1,11 +1,10 @@
-import socket
-import select
 import sys
-import utils
+import config
+from httpserver import HttpServer, Response
 
 
 if __name__ == '__main__':
-  config = utils.get_config('./httpserver.conf')
+  config = config.get_config('./httpserver.conf')
 
   server = HttpServer(
     config['server']['host'],
@@ -14,8 +13,7 @@ if __name__ == '__main__':
 
   try:
     if server.connect():
-      while True:
-        server.run()
+      server.run()
 
   except KeyboardInterrupt:
     sys.exit(0)
