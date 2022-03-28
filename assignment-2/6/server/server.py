@@ -1,6 +1,7 @@
+import routes
 import sys
 import config
-from httpserver import HttpServer, Response
+from httpserver import HttpServer
 
 
 if __name__ == '__main__':
@@ -10,6 +11,8 @@ if __name__ == '__main__':
     config['server']['host'],
     int(config['server']['port'])
   )
+
+  server.add_route(routes.create_route_file('/index.html', ['/', 'index.html']))
 
   try:
     if server.connect():

@@ -26,6 +26,7 @@ class Response:
   @staticmethod
   def get_file_response(filename):
     response = Response()
+    filename = '.' + filename
     
     content = ''
     with open(filename, 'r') as file:
@@ -44,7 +45,7 @@ class Response:
 
   @staticmethod
   def get_404_response():
-    response = Response.get_file_response('./404.html')
+    response = Response.get_file_response('/404.html')
 
     response.status_code = 404
     response.status = 'Not found'
@@ -58,6 +59,8 @@ class Route:
     self.response_callback = response_callback
 
   def is_match(self, response) -> bool:
+    print(response)
+
     data = response.decode("utf-8")
     request_header = data.split("\r\n")
     requested_route = request_header[0].split()[1]
@@ -129,4 +132,4 @@ class HttpServer:
           if not is_match:
             response = Response.get_404_response().create()
 
-          self.socket.sendall(response)
+          ready_socket.sendall(response)
