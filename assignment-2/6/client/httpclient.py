@@ -146,15 +146,22 @@ class HttpClient:
   def download(self, route):
     response = self.get_response(route, True)
 
+    paths = route.split('/')
+    filename = paths[len(paths) - 1]
+
     if response.get_content_type().__contains__('html'):
-      self.handle_html(response)
+          self.handle_html(response)
 
     else:
-      if not os.path.exists(os.path.dirname(__file__) + '\dataset'):
-        os.makedirs('dataset')
-      else:
-        if os.path.exists(os.path.dirname(__file__) + route):
-          os.remove(os.path.dirname(__file__) + route)
+      datasetpath = os.path.dirname(__file__) + '/dataset'
+      filepath = datasetpath + '/' + filename
 
-      with open(os.path.dirname(__file__) + route, 'wb') as file:
+      if not os.path.exists(datasetpath):
+        os.makedirs('dataset')
+
+      else:
+        if os.path.exists(filepath):
+          os.remove(filepath)
+
+      with open(filepath, 'wb') as file:
         file.write(response.body)

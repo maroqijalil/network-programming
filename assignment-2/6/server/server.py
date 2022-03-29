@@ -1,5 +1,4 @@
 import routes
-import sys
 import config
 from httpserver import HttpServer
 
@@ -15,9 +14,5 @@ if __name__ == '__main__':
   for route in routes.routes:
     server.add_route(route)
 
-  try:
-    if server.connect():
-      server.run()
-
-  except KeyboardInterrupt:
-    sys.exit(0)
+  if server.connect():
+    server.run()

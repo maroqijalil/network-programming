@@ -1,4 +1,5 @@
 import os
+import sys
 from magic import Magic
 import socket
 import select
@@ -62,18 +63,54 @@ class Route:
     self.response_callback = response_callback
 
   def is_match(self, request) -> bool:
-    if request:
-      request_header = request.split("\r\n")
+    request_header = request.split("\r\n")
 
-      if request_header[0]:
-        requested_route = request_header[0].split()[1]
+    if request_header[0]:
+      requested_route = request_header[0].split()[1]
 
-        if len(self.routes) > 0:
-          for route in self.routes:
-            if requested_route == route:
-              return True
+      if len(self.routes) > 0:
+        for route in self.routes:
+          if requested_route == route:
+            return True
 
     return False
+
+
+class ClientHandler(threading.Thread):
+  def __init__(self, socket, routes):
+    threading.Thread.__init__(self)
+
+    self.socket = socket
+    self.routes: List[Route] = routes
+
+  def run(self):
+    while True:
+      request = self.socket.recv(4096)
+
+      if request:
+        is_match = False
+        response = b''
+
+        request = request.decode("utf-8")
+
+        print(self.socket.getpeername(), end=": ")
+        print(request)
+
+        for route in self.routes:
+          if route.is_match(request):
+            response = route.response_callback().create()
+            is_match = True
+
+            break
+
+        if not is_match:
+          response = Response.get_404_response().create()
+
+        self.socket.sendall(response)
+
+      else:
+        self.socket.close()
+        break
 
 
 class HttpServer:
@@ -83,9 +120,8 @@ class HttpServer:
     self.host = host
     self.port = port
 
-    self.input_sockets = []
-
     self.routes: List[Route] = []
+    self.threads: List[ClientHandler] = []
 
   def __del__(self):
     self.socket.close()
@@ -104,50 +140,29 @@ class HttpServer:
       self.socket.bind((self.host, self.port))
       self.socket.listen(100)
 
-      self.input_sockets.append(self.socket)
-
       return True
 
     except Exception:
       return False
 
   def run(self):
-    while True:
-      read_ready_sockets, _, _ = select.select(self.input_sockets, [], [])
+    is_running = True
 
-      for ready_socket in read_ready_sockets:
-        if ready_socket == self.socket:
-          client_socket, _ = self.socket.accept()
-          self.input_sockets.append(client_socket)
+    while is_running:
+      try:
+        read_ready_sockets, _, _ = select.select([self.socket], [], [])
 
-        else:
-          thread = threading.Thread(target=self.process_ready_socket, args=(ready_socket,))
-          thread.setDaemon(True)
-          thread.start()
+        for ready_socket in read_ready_sockets:
+          if ready_socket == self.socket:
+            client_socket, _ = self.socket.accept()
 
-          print("server loop running in thread:", thread.name)
+            client = ClientHandler(client_socket, self.routes)
+            client.start()
+            self.threads.append(client)
 
-          thread.join()
-  
-  def process_ready_socket(self, ready_socket):
-    request = ready_socket.recv(4096)
+      except KeyboardInterrupt:
+        is_running = False
 
-    is_match = False
-    response = b''
-
-    request = request.decode("utf-8")
-
-    print(ready_socket.getpeername(), end=": ")
-    print(request)
-
-    for route in self.routes:
-      if route.is_match(request):
-        response = route.response_callback().create()
-        is_match = True
-
-        break
-
-    if not is_match:
-      response = Response.get_404_response().create()
-
-    ready_socket.sendall(response)
+    self.socket.close()
+    for client in self.threads:
+      client.join()
