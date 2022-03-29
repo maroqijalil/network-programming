@@ -150,5 +150,11 @@ class HttpClient:
       self.handle_html(response)
 
     else:
+      if not os.path.exists(os.path.dirname(__file__) + '\dataset'):
+        os.makedirs('dataset')
+      else:
+        if os.path.exists(os.path.dirname(__file__) + route):
+          os.remove(os.path.dirname(__file__) + route)
+
       with open(os.path.dirname(__file__) + route, 'wb') as file:
         file.write(response.body)
