@@ -62,7 +62,6 @@ class Route:
 
   def is_match(self, response) -> bool:
     data = response.decode("utf-8")
-    print(data)
     request_header = data.split("\r\n")
     requested_route = request_header[0].split()[1]
 
