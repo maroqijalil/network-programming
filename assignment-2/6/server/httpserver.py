@@ -2,6 +2,7 @@ import os
 from magic import Magic
 import socket
 import select
+import threading
 from typing import Callable, List
 
 
@@ -121,21 +122,26 @@ class HttpServer:
           self.input_sockets.append(client_socket)
 
         else:
-          request = ready_socket.recv(4096)
+          t = threading.Thread(target=self.process_ready_socket, args=(ready_socket,))
+          t.start()
+          print("Server loop running in thread:", t.name)
+  
+  def process_ready_socket(self, ready_socket):
+    request = ready_socket.recv(4096)
 
-          print(ready_socket.getpeername(), end=": ")
+    print(ready_socket.getpeername(), end=": ")
 
-          is_match = False
+    is_match = False
 
-          response = b''
-          for route in self.routes:
-            if route.is_match(request):
-              response = route.response_callback().create()
-              is_match = True
+    response = b''
+    for route in self.routes:
+      if route.is_match(request):
+        response = route.response_callback().create()
+        is_match = True
 
-              break
+        break
 
-          if not is_match:
-            response = Response.get_404_response().create()
+    if not is_match:
+      response = Response.get_404_response().create()
 
-          ready_socket.sendall(response)
+    ready_socket.sendall(response)
