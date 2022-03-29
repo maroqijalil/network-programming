@@ -56,6 +56,15 @@ class Response:
 
     return response
 
+  @staticmethod
+  def get_500_response():
+    response = Response.get_file_response('/error.html')
+
+    response.status_code = 500
+    response.status = 'Internal server error'
+
+    return response
+
 
 class Route:
   def __init__(self, routes: List[str], response_callback: Callable[[], Response]):
@@ -96,15 +105,19 @@ class ClientHandler(threading.Thread):
         print(self.socket.getpeername(), end=": ")
         print(request)
 
-        for route in self.routes:
-          if route.is_match(request):
-            response = route.response_callback().create()
-            is_match = True
+        try:
+          for route in self.routes:
+            if route.is_match(request):
+              response = route.response_callback().create()
+              is_match = True
 
-            break
+              break
 
-        if not is_match:
-          response = Response.get_404_response().create()
+          if not is_match:
+            response = Response.get_404_response().create()
+
+        except:
+          response = Response.get_500_response().create()
 
         self.socket.sendall(response)
 
