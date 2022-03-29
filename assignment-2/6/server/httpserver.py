@@ -124,7 +124,9 @@ class HttpServer:
           thread = threading.Thread(target=self.process_ready_socket, args=(ready_socket,))
           thread.setDaemon(True)
           thread.start()
-          print("Server loop running in thread:", thread.name)
+
+          print("server loop running in thread:", thread.name)
+
           thread.join()
   
   def process_ready_socket(self, ready_socket):
