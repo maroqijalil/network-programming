@@ -61,19 +61,18 @@ class Route:
     self.routes = routes
     self.response_callback = response_callback
 
-  def is_match(self, response) -> bool:
-    data = response.decode("utf-8")
-    print(data)
-    request_header = data.split("\r\n")
-    requested_route = request_header[0].split()[1]
+  def is_match(self, data) -> bool:
+    if (data):
+      request_header = data.split("\r\n")
 
-    print(request_header[0])
+      if (request_header[0]):
+        requested_route = request_header[0].split()[1]
 
-    if len(self.routes) > 0:
-      for route in self.routes:
-        if requested_route == route:
-          return True
-    
+        if len(self.routes) > 0:
+          for route in self.routes:
+            if requested_route == route:
+              return True
+
     return False
 
 
@@ -123,17 +122,21 @@ class HttpServer:
 
         else:
           t = threading.Thread(target=self.process_ready_socket, args=(ready_socket,))
+          t.setDaemon(True)
           t.start()
           print("Server loop running in thread:", t.name)
+          t.join()
   
   def process_ready_socket(self, ready_socket):
     request = ready_socket.recv(4096)
 
-    print(ready_socket.getpeername(), end=": ")
+    # print(ready_socket.getpeername(), end=": ")
 
     is_match = False
-
     response = b''
+
+    request = request.decode("utf-8")
+    print(request)
     for route in self.routes:
       if route.is_match(request):
         response = route.response_callback().create()
