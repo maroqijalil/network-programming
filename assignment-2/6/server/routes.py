@@ -60,5 +60,5 @@ routes: List[Route] = [
   create_route_file('/dataset/lagu.mp3', ['dataset/lagu.mp3']),
   create_route_file('/dataset/project.pdf', ['dataset/project.pdf']),
   create_route_file('/dataset/test.txt', ['dataset/test.txt']),
-  create_route_dir('/dataset', ['dataset'])
+  create_route_dir('/dataset', ['dataset', '/dataset/', 'dataset/'])
 ]
