@@ -19,6 +19,13 @@ def problem_1(args: argparse.Namespace):
       print(message)
 
 
+def problem_2(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.send(['SYST\r\n'])
+  print("success")
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
   parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
@@ -39,7 +46,7 @@ if __name__ == '__main__':
         problem_1(args)
 
       if "2" in command:
-        problem_1(args)
+        problem_2(args)
 
   except Exception as e:
     print(e)
