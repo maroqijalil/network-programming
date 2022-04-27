@@ -2,6 +2,7 @@ import sys
 import config
 from ftp import FTP
 
+
 if __name__ == '__main__':
   conf = config.get_config('./ftp.conf')
 
@@ -18,11 +19,9 @@ if __name__ == '__main__':
 
     if not is_success:
       raise Exception("user not logged in")
-  
-    for response in ftp.responses:
-      if '220' in response:
-        message = response.replace('220', '').strip(' ()')
-        print(message)
+
+    ftp.send(['SYST\r\n'])
+    print("success")
 
   except Exception as e:
     print(e)
