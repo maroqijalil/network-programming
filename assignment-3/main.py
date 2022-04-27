@@ -49,6 +49,21 @@ def problem_5(args: argparse.Namespace):
     print("fail")
 
 
+def problem_6(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.send(['PWD\r\n'])
+
+
+def problem_7(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  if ftp.rename("test1", "test2"):
+    print("success")
+  else:
+    print("fail")
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
   parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
@@ -80,6 +95,12 @@ if __name__ == '__main__':
 
         if "5" in command:
           problem_5(args)
+
+        if "6" in command:
+          problem_6(args)
+
+        if "7" in command:
+          problem_7(args)
 
       except Exception as e:
         print(e)

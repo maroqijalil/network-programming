@@ -119,7 +119,7 @@ class FTPClient:
       print("files:")
       for file in files:
         print(f' {file}')
-  
+
   def mkdir(self, dirname) -> bool:
     self.send([f'MKD {self.workdir}/{dirname}\r\n'])
 
@@ -143,6 +143,15 @@ class FTPClient:
 
     else:
       raise Exception("file not found in", os.getcwd())
+
+  def rename(self, source, target) -> bool:
+    self.send([f'RNFR {self.workdir}/{source}\r\n'])
+    self.send([f'RNTO {self.workdir}/{target}\r\n'])
+
+    if self.get_response("250"):
+      return True
+
+    return False
 
   def summary(self):
     print("\nsummary:")
