@@ -153,6 +153,14 @@ class FTPClient:
 
     return False
 
+  def remove(self, dirname) -> bool:
+    self.send([f'RMD {self.workdir}/{dirname}\r\n'])
+
+    if self.get_response("250"):
+      return True
+
+    return False
+
   def summary(self):
     print("\nsummary:")
     for response in self.responses:

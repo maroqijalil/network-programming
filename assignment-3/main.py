@@ -63,6 +63,14 @@ def problem_7(args: argparse.Namespace):
   else:
     print("fail")
 
+def problem_8(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  if ftp.remove("test2"):
+    print("success")
+  else:
+    print("fail")
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
@@ -101,6 +109,9 @@ if __name__ == '__main__':
 
         if "7" in command:
           problem_7(args)
+
+        if "8" in command:
+          problem_8(args)
 
       except Exception as e:
         print(e)
