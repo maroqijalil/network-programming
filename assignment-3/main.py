@@ -6,7 +6,7 @@ from ftp import FTPClient
 
 
 def get_ftp(args: argparse.Namespace) -> FTPClient:
-  ftp = FTPClient(args.host, args.port)
+  ftp = FTPClient(args.host, args.port, "files")
 
   if ftp.login(args.user, args.passwd):
     return ftp

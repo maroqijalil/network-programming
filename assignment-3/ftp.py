@@ -6,7 +6,7 @@ from urllib import response
 
 
 class FTPClient:
-  def __init__(self, host, port = 21, workdir = "files"):
+  def __init__(self, host, port = 21, workdir = ""):
     self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.data_socket: socket.socket = None
 
