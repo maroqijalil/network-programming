@@ -1,5 +1,6 @@
 from ctypes import Union
 import socket
+import os
 from typing import List
 from urllib import response
 
@@ -118,6 +119,30 @@ class FTPClient:
         print(f' {file}')
 
       print("")
+
+  def send_file(self):
+    self.type('I')
+    self.pasv()
+    file_name = "baymax.jpg"
+    self.send([f'STOR files/{file_name}\r\n'])
+    file_path = os.getcwd() + "/dataset/" + file_name
+
+    state = False
+    data = b''
+
+    if os.path.exists(file_path):
+      # file_size = os.path.getsize(file_path)
+      # data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
+
+      with open(file_path, 'rb') as file:
+        data += file.read()
+        state = True
+
+    else:
+      print("File not found in", os.getcwd())
+    
+    if state:
+      self.data_socket.send(data)
     
   def summary(self):
     print("\nsummary:")

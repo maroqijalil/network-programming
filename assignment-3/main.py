@@ -27,46 +27,17 @@ def problem_2(args: argparse.Namespace):
   ftp.send(['SYST\r\n'])
   print("success")
 
-def problem_4(args: argparse.Namespace):
-  ftp, _ = get_ftp(args)
-  file_name = "yey.txt"
-  file_path = os.getcwd() + "/dataset/" + file_name
-
-  state = False
-  data = b''
-
-  if os.path.exists(file_path):
-    file_size = os.path.getsize(file_path)
-
-    data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
-
-    with open(file_path, 'rb') as file:
-      data += file.read()
-
-      state = True
-
-  else:
-    print("not found", os.getcwd())
-  
-  if state:
-    ftp.send(['STOR \r\n'])
-
-  else:
-    if len(data):
-      file_size = 0
-
-    else:
-      file_size = -1
-    
-    data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n')
-    ftp.send(data)
-
 def problem_3(args: argparse.Namespace):
   ftp = get_ftp(args)
 
   ftp.ls()
   print("success")
 
+def problem_4(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.send_file()
+  print("success")
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
@@ -94,11 +65,12 @@ if __name__ == '__main__':
         if "3" in command:
           problem_3(args)
 
+        if "4" in command:
+          problem_4(args)
+
       except Exception as e:
         print(e)
 
-      if "4" in command:
-        problem_4(args)
 
   except KeyboardInterrupt:
     print("")
