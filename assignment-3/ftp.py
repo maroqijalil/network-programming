@@ -135,8 +135,6 @@ class FTPClient:
     file_path = os.getcwd() + "/dataset/" + file_name
 
     if os.path.exists(file_path):
-      # file_size = os.path.getsize(file_path)
-      # data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
       with open(file_path, 'rb') as file:
         self.data_socket.sendall(file.read())
 
