@@ -1,9 +1,6 @@
-from ctypes import Union
 import socket
 import os
 from typing import List
-from urllib import response
-
 
 class FTPClient:
   def __init__(self, host, port = 21, workdir = ""):
