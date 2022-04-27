@@ -9,6 +9,8 @@ class FTP:
 
     FTP.handle_reuse(self.conn_socket)
     self.conn_socket.connect((host, port))
+
+    self.responses: List[str] = []
   
   def __del__(self):
     self.conn_socket.close()
@@ -28,18 +30,19 @@ class FTP:
     except Exception:
       pass
   
-  def send(self, commands: List[str]) -> List[str]:
-    responses = []
-    
+  def send(self, commands: List[str]):
     for command in commands:
       self.conn_socket.send(command.encode('utf-8'))
       response = self.conn_socket.recv(1024)
       response = response.strip().decode('utf-8').split("\r\n")
-      responses.extend(response)
-    
-    return responses
+      self.responses.extend(response)
 
-  def login(self, user, passwd):
+  def login(self, user, passwd) -> bool:
     commands = [f'USER {user}\r\n', f'PASS {passwd}\r\n']
-    return self.send(commands)
-    
+    self.send(commands)
+
+    for response in self.responses:
+      if '230' in response:
+        return True
+
+    return False
