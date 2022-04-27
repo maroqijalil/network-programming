@@ -13,6 +13,7 @@ class FTP:
     self.responses: List[str] = []
   
   def __del__(self):
+    self.send(['QUIT\r\n'])
     self.conn_socket.close()
 
     if self.data_socket is not None:
@@ -38,8 +39,7 @@ class FTP:
       self.responses.extend(response)
 
   def login(self, user, passwd) -> bool:
-    commands = [f'USER {user}\r\n', f'PASS {passwd}\r\n']
-    self.send(commands)
+    self.send([f'USER {user}\r\n', f'PASS {passwd}\r\n'])
 
     for response in self.responses:
       if '230' in response:

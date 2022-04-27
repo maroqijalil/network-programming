@@ -24,7 +24,8 @@ if __name__ == '__main__':
         message = response.replace('220', '').strip(' ()')
         print(message)
 
-  except Exception:
+  except Exception as e:
+    print(e)
     sys.exit(1)
 
   except KeyboardInterrupt:
