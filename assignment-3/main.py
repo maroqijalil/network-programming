@@ -48,8 +48,5 @@ if __name__ == '__main__':
       if "2" in command:
         problem_2(args)
 
-  except Exception as e:
-    print(e)
-
   except KeyboardInterrupt:
     sys.exit(0)
