@@ -1,17 +1,18 @@
 import argparse
 import sys
+from typing import Tuple
 from ftp import FTPClient
 
 
-def get_ftp(args: argparse.Namespace) -> FTPClient:
+def get_ftp(args: argparse.Namespace) -> Tuple[FTPClient, bool]:
   ftp = FTPClient(args.host, args.port)
-  ftp.login(args.user, args.passwd)
+  is_logged_in = ftp.login(args.user, args.passwd)
 
-  return ftp
+  return ftp, is_logged_in
 
 
 def problem_1(args: argparse.Namespace):
-  ftp = get_ftp(args)
+  ftp, _ = get_ftp(args)
 
   for response in ftp.responses:
     if '220' in response:
@@ -20,7 +21,7 @@ def problem_1(args: argparse.Namespace):
 
 
 def problem_2(args: argparse.Namespace):
-  ftp = get_ftp(args)
+  ftp, _ = get_ftp(args)
 
   ftp.send(['SYST\r\n'])
   print("success")
