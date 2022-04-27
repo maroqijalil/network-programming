@@ -16,10 +16,8 @@ def get_ftp(args: argparse.Namespace) -> FTPClient:
 def problem_1(args: argparse.Namespace):
   ftp = get_ftp(args)
 
-  for response in ftp.responses:
-    if '220' in response:
-      message = response.replace('220', '').strip(' ()')
-      print(message)
+  message = ftp.get_response("220").replace("220", "").strip(" ()")
+  print(message)
 
 
 def problem_2(args: argparse.Namespace):
@@ -32,7 +30,7 @@ def problem_2(args: argparse.Namespace):
 def problem_3(args: argparse.Namespace):
   ftp = get_ftp(args)
 
-  ftp.send(['SYST\r\n'])
+  ftp.ls()
   print("success")
 
 
@@ -66,4 +64,5 @@ if __name__ == '__main__':
         print(e)
 
   except KeyboardInterrupt:
+    print("")
     sys.exit(0)

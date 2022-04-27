@@ -1,6 +1,7 @@
 from ctypes import Union
 import socket
 from typing import List
+from urllib import response
 
 
 class FTPClient:
@@ -48,6 +49,18 @@ class FTPClient:
         return response
     
     return ""
+  
+  def get_data(self) -> str:
+    response = ""
+    while True:
+      data = self.data_socket.recv(1024)
+
+      if data:
+        response += data.strip().decode('utf-8')
+      else:
+        break
+    
+    return response
 
   def login(self, user, passwd) -> bool:
     self.send([f'USER {user}\r\n', f'PASS {passwd}\r\n'])
@@ -63,24 +76,49 @@ class FTPClient:
   def pasv(self):
     self.send(['PASV\r\n'])
 
-    for response in self.responses:
-      if "Passive Mode" in response:
-        content = response.split("(")[1].split(",")
-        p1, p2 = content[4], content[5]
-        
-        port = p1 * 256 + p2
+    response = self.get_response("Passive Mode")
+    content = response.split("(")[1].split(")")[0].split(",")
+    p1, p2 = int(content[4]), int(content[5])
+    
+    port = p1 * 256 + p2
 
-        self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        FTPClient.handle_reuse(self.data_socket)
-        self.data_socket.connect((self.host, port))
+    FTPClient.handle_reuse(self.data_socket)
+    self.data_socket.connect((self.host, port))
 
-        break
+  def type(self, type):
+    self.send([f'TYPE {type}\r\n'])
 
   def ls(self, dirname = ''):
+    self.type('I')
     self.pasv()
     self.send([f'LIST {dirname}\r\n'])
 
+    dirs = []
+    files = []
+    for data in self.get_data().split('\r\n'):
+      datas = data.split(" ")
+
+      if data[0] == 'd':
+        dirs.append(datas[-1])
+      else:
+        files.append(datas[-1])
+
+    if dirs:
+      print("directories:")
+      for dir in dirs:
+        print(f' /{dir}')
+
+      print("")
+
+    if files:
+      print("files:")
+      for file in files:
+        print(f' {file}')
+
+      print("")
+    
   def summary(self):
     print("\nsummary:")
     for response in self.responses:
