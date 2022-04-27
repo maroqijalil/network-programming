@@ -1,5 +1,6 @@
 from ctypes import Union
 import socket
+import os
 from typing import List
 from urllib import response
 
@@ -17,11 +18,11 @@ class FTPClient:
     self.responses: List[str] = []
   
   def __del__(self):
-    self.send(['QUIT\r\n'])
-    self.conn_socket.close()
-
     if self.data_socket:
       self.data_socket.close()
+
+    self.send(['QUIT\r\n'])
+    self.conn_socket.close()
 
     self.summary()
     
@@ -126,6 +127,22 @@ class FTPClient:
       return True
 
     return False
+
+  def store(self):
+    self.type('I')
+    self.pasv()
+    file_name = "baymax.jpg"
+    self.send([f'STOR {self.workdir}/{file_name}\r\n'])
+    file_path = os.getcwd() + "/dataset/" + file_name
+
+    if os.path.exists(file_path):
+      # file_size = os.path.getsize(file_path)
+      # data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n').encode('utf-8')
+      with open(file_path, 'rb') as file:
+        self.data_socket.sendall(file.read())
+
+    else:
+      raise Exception("file not found in", os.getcwd())
 
   def summary(self):
     print("\nsummary:")
