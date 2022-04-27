@@ -5,24 +5,24 @@ from typing import Tuple
 from ftp import FTPClient
 
 
-def get_ftp(args: argparse.Namespace) -> Tuple[FTPClient, bool]:
+def get_ftp(args: argparse.Namespace) -> FTPClient:
   ftp = FTPClient(args.host, args.port)
-  is_logged_in = ftp.login(args.user, args.passwd)
 
-  return ftp, is_logged_in
+  if ftp.login(args.user, args.passwd):
+    return ftp
+  else:
+    raise Exception("user not logged-in")
 
 
 def problem_1(args: argparse.Namespace):
-  ftp, _ = get_ftp(args)
+  ftp = get_ftp(args)
 
-  for response in ftp.responses:
-    if '220' in response:
-      message = response.replace('220', '').strip(' ()')
-      print(message)
+  message = ftp.get_response("220").replace("220", "").strip(" ()")
+  print(message)
 
 
 def problem_2(args: argparse.Namespace):
-  ftp, _ = get_ftp(args)
+  ftp = get_ftp(args)
 
   ftp.send(['SYST\r\n'])
   print("success")
@@ -61,6 +61,13 @@ def problem_4(args: argparse.Namespace):
     data = (f'\nfile-name: {file_name},\nfile-size: {file_size},\n\n\n')
     ftp.send(data)
 
+def problem_3(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.ls()
+  print("success")
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
   parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
@@ -77,14 +84,22 @@ if __name__ == '__main__':
       print('>> ', end='')
       command = input()
 
-      if "1" in command:
-        problem_1(args)
+      try:
+        if "1" in command:
+          problem_1(args)
 
-      if "2" in command:
-        problem_2(args)
+        if "2" in command:
+          problem_2(args)
+
+        if "3" in command:
+          problem_3(args)
+
+      except Exception as e:
+        print(e)
 
       if "4" in command:
         problem_4(args)
 
   except KeyboardInterrupt:
+    print("")
     sys.exit(0)
