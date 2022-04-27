@@ -33,11 +33,15 @@ def problem_3(args: argparse.Namespace):
   ftp.ls()
 
 
-def problem_4(args: argparse.Namespace):
+def problem_4(args: argparse.Namespace, command):
   ftp = get_ftp(args)
+  commands = command.split(" ")
+  file_name = "baymax.jpg"
+  if len(commands) > 1:
+    file_name = commands[1]
 
-  ftp.store()
-  print("success")
+  ftp.store(file_name)
+  print("successfully store", file_name)
 
 
 def problem_5(args: argparse.Namespace):
@@ -99,7 +103,7 @@ if __name__ == '__main__':
           problem_3(args)
 
         if "4" in command:
-          problem_4(args)
+          problem_4(args, command)
 
         if "5" in command:
           problem_5(args)

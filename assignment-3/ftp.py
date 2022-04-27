@@ -128,10 +128,9 @@ class FTPClient:
 
     return False
 
-  def store(self):
+  def store(self, file_name):
     self.type('I')
     self.pasv()
-    file_name = "baymax.jpg"
     self.send([f'STOR {self.workdir}/{file_name}\r\n'])
     file_path = os.getcwd() + "/dataset/" + file_name
 
