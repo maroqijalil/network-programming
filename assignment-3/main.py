@@ -31,7 +31,15 @@ def problem_3(args: argparse.Namespace):
   ftp = get_ftp(args)
 
   ftp.ls()
-  print("success")
+
+
+def problem_5(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  if ftp.mkdir("test1"):
+    print("success")
+  else:
+    print("fail")
 
 
 if __name__ == '__main__':
@@ -59,6 +67,9 @@ if __name__ == '__main__':
 
         if "3" in command:
           problem_3(args)
+
+        if "5" in command:
+          problem_5(args)
 
       except Exception as e:
         print(e)

@@ -5,13 +5,14 @@ from urllib import response
 
 
 class FTPClient:
-  def __init__(self, host, port = 21):
+  def __init__(self, host, port = 21, workdir = "files"):
     self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self.data_socket: socket.socket = None
 
     FTPClient.handle_reuse(self.conn_socket)
     self.conn_socket.connect((host, port))
 
+    self.workdir = workdir
     self.host = host
     self.responses: List[str] = []
   
@@ -78,8 +79,8 @@ class FTPClient:
 
     response = self.get_response("Passive Mode")
     content = response.split("(")[1].split(")")[0].split(",")
+
     p1, p2 = int(content[4]), int(content[5])
-    
     port = p1 * 256 + p2
 
     self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -90,35 +91,42 @@ class FTPClient:
   def type(self, type):
     self.send([f'TYPE {type}\r\n'])
 
-  def ls(self, dirname = ''):
+  def ls(self, dirname = ""):
     self.type('I')
     self.pasv()
-    self.send([f'LIST {dirname}\r\n'])
+    self.send([f'LIST {self.workdir}/{dirname}\r\n'])
 
     dirs = []
     files = []
     for data in self.get_data().split('\r\n'):
       datas = data.split(" ")
 
-      if data[0] == 'd':
-        dirs.append(datas[-1])
-      else:
-        files.append(datas[-1])
+      try:
+        if data[0] == 'd':
+          dirs.append(datas[-1])
+        else:
+          files.append(datas[-1])
+      except:
+        pass
 
     if dirs:
       print("directories:")
       for dir in dirs:
         print(f' /{dir}')
 
-      print("")
-
     if files:
       print("files:")
       for file in files:
         print(f' {file}')
+  
+  def mkdir(self, dirname) -> bool:
+    self.send([f'MKD {self.workdir}/{dirname}\r\n'])
 
-      print("")
-    
+    if self.get_response("257"):
+      return True
+
+    return False
+
   def summary(self):
     print("\nsummary:")
     for response in self.responses:
