@@ -4,15 +4,17 @@ from typing import Tuple
 from ftp import FTPClient
 
 
-def get_ftp(args: argparse.Namespace) -> Tuple[FTPClient, bool]:
+def get_ftp(args: argparse.Namespace) -> FTPClient:
   ftp = FTPClient(args.host, args.port)
-  is_logged_in = ftp.login(args.user, args.passwd)
 
-  return ftp, is_logged_in
+  if ftp.login(args.user, args.passwd):
+    return ftp
+  else:
+    raise Exception("user not logged-in")
 
 
 def problem_1(args: argparse.Namespace):
-  ftp, _ = get_ftp(args)
+  ftp = get_ftp(args)
 
   for response in ftp.responses:
     if '220' in response:
@@ -21,7 +23,14 @@ def problem_1(args: argparse.Namespace):
 
 
 def problem_2(args: argparse.Namespace):
-  ftp, _ = get_ftp(args)
+  ftp = get_ftp(args)
+
+  ftp.send(['SYST\r\n'])
+  print("success")
+
+
+def problem_3(args: argparse.Namespace):
+  ftp = get_ftp(args)
 
   ftp.send(['SYST\r\n'])
   print("success")
@@ -43,11 +52,18 @@ if __name__ == '__main__':
       print('>> ', end='')
       command = input()
 
-      if "1" in command:
-        problem_1(args)
+      try:
+        if "1" in command:
+          problem_1(args)
 
-      if "2" in command:
-        problem_2(args)
+        if "2" in command:
+          problem_2(args)
+
+        if "3" in command:
+          problem_3(args)
+
+      except Exception as e:
+        print(e)
 
   except KeyboardInterrupt:
     sys.exit(0)
