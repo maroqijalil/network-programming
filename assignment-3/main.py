@@ -13,6 +13,21 @@ def get_ftp(args: argparse.Namespace) -> FTPClient:
     raise Exception("user not logged-in")
 
 
+def get_input_by_confirm(confirm, determine):
+  print(confirm, end='')
+  command = input()
+
+  if not any(avail == command for avail in ['y', 'n', '']):
+    raise Exception("input isn't valid")
+
+  result = ""
+  if command == 'n':
+    print(determine, end='')
+    result = input()
+  
+  return result
+
+
 def problem_1(args: argparse.Namespace):
   ftp = get_ftp(args)
   print(ftp.get_content("220").strip(" ()"))
@@ -25,26 +40,45 @@ def problem_2(args: argparse.Namespace):
   print(ftp.get_content("215"))
 
 
-def problem_3(args: argparse.Namespace, dirname):
+def problem_3(args: argparse.Namespace):
+  dirname = get_input_by_confirm(
+    "using default folder? (y/n) ",
+    "which folder it is? "
+  )
+
   ftp = get_ftp(args)
+
+  print(f"\ncontents of /{dirname}")
   ftp.ls(dirname)
 
 
 def problem_4(args: argparse.Namespace, command):
-  ftp = get_ftp(args)
-  commands = command.split(" ")
-  file_name = "baymax.jpg"
-  if len(commands) > 1:
-    file_name = commands[1]
+  filename = get_input_by_confirm(
+    "using default file to upload? (y/n) ",
+    "what is the filename? "
+  )
 
-  ftp.store(file_name)
-  print("successfully store", file_name)
+  targetdir = get_input_by_confirm(
+    "using default target folder? (y/n) ",
+    "where is the target folder? "
+  )
+
+  ftp = get_ftp(args)
+
+  print("\nprcessing", filename)
+  ftp.store(filename, targetdir)
+  print("success to store", filename)
 
 
 def problem_5(args: argparse.Namespace):
+  dirname = get_input_by_confirm(
+    "create default folder? (y/n) ",
+    "what is the detail folder? "
+  )
+
   ftp = get_ftp(args)
 
-  if ftp.mkdir("test1"):
+  if ftp.mkdir(dirname):
     print("success")
   else:
     print("fail")
@@ -98,16 +132,7 @@ if __name__ == '__main__':
           problem_2(args)
 
         if "3" in command:
-          print("using default folder? (y/n) ", end='')
-          command1 = input()
-
-          dirname = ""
-          if command1 == 'n':
-            print("which folder it is? ", end='')
-            dirname = input()
-
-          print(f"\ncontent of /{dirname}")
-          problem_3(args, dirname)
+          problem_3(args)
 
         if "4" in command:
           problem_4(args, command)

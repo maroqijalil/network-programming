@@ -137,18 +137,19 @@ class FTPClient:
 
     return False
 
-  def store(self, file_name):
+  def store(self, filename, targetdir = ""):
     self.type('I')
     self.pasv()
-    self.send([f'STOR {self.workdir}/{file_name}\r\n'])
-    file_path = os.getcwd() + "/dataset/" + file_name
+    filepath = os.getcwd() + "/dataset/" + filename
 
-    if os.path.exists(file_path):
-      with open(file_path, 'rb') as file:
+    if os.path.exists(filepath):
+      with open(filepath, 'rb') as file:
         self.data_socket.sendall(file.read())
 
+        self.send([f'STOR {self.workdir}/{targetdir}/{filename}\r\n'])
+
     else:
-      raise Exception("file not found in", os.getcwd())
+      raise Exception(f"file not found in {filepath}")
 
   def rename(self, source, target) -> bool:
     self.send([f'RNFR {self.workdir}/{source}\r\n'])
