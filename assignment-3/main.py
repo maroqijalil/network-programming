@@ -13,14 +13,14 @@ def get_ftp(args: argparse.Namespace) -> FTPClient:
     raise Exception("user not logged-in")
 
 
-def get_input_by_confirm(confirm, determine):
+def get_input_by_confirm(confirm, determine, default = ""):
   print(confirm, end='')
   command = input()
 
   if not any(avail == command for avail in ['y', 'n', '']):
     raise Exception("input isn't valid")
 
-  result = ""
+  result = default
   if command == 'n':
     print(determine, end='')
     result = input()
@@ -52,10 +52,11 @@ def problem_3(args: argparse.Namespace):
   ftp.ls(dirname)
 
 
-def problem_4(args: argparse.Namespace, command):
+def problem_4(args: argparse.Namespace):
   filename = get_input_by_confirm(
     "using default file to upload? (y/n) ",
-    "what is the filename? "
+    "what is the filename? ",
+    "baymax.jpg"
   )
 
   targetdir = get_input_by_confirm(
@@ -65,7 +66,7 @@ def problem_4(args: argparse.Namespace, command):
 
   ftp = get_ftp(args)
 
-  print("\nprcessing", filename)
+  print("\nstoring", filename)
   ftp.store(filename, targetdir)
   print("success to store", filename)
 
@@ -73,11 +74,13 @@ def problem_4(args: argparse.Namespace, command):
 def problem_5(args: argparse.Namespace):
   dirname = get_input_by_confirm(
     "create default folder? (y/n) ",
-    "what is the detail folder? "
+    "what is the detail folder? ",
+    "test1"
   )
 
   ftp = get_ftp(args)
 
+  print(f"\ncreating /{dirname}")
   if ftp.mkdir(dirname):
     print("success")
   else:
@@ -91,18 +94,38 @@ def problem_6(args: argparse.Namespace):
 
 
 def problem_7(args: argparse.Namespace):
+  source = get_input_by_confirm(
+    "rename the default folder? (y/n) ",
+    "what the folder it is? ",
+    "test1"
+  )
+
+  target = get_input_by_confirm(
+    "using default name of target folder? (y/n) ",
+    "what is the name of target folder name? ",
+    "test2"
+  )
+
   ftp = get_ftp(args)
 
-  if ftp.rename("test1", "test2"):
+  print(f"\nrenaming /{source} to be /{target}")
+  if ftp.rename(source, target):
     print("success")
   else:
     print("fail")
 
 
 def problem_8(args: argparse.Namespace):
+  dirname = get_input_by_confirm(
+    "delete default folder? (y/n) ",
+    "what is the detail folder? ",
+    "test2"
+  )
+
   ftp = get_ftp(args)
 
-  if ftp.rmdir("test2"):
+  print(f"\nremoving /{dirname}")
+  if ftp.rmdir(dirname):
     print("success")
   else:
     print("fail")
@@ -135,7 +158,7 @@ if __name__ == '__main__':
           problem_3(args)
 
         if "4" in command:
-          problem_4(args, command)
+          problem_4(args)
 
         if "5" in command:
           problem_5(args)
