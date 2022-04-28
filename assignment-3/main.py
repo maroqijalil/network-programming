@@ -1,7 +1,5 @@
 import argparse
 import sys
-import os
-from typing import Tuple
 from ftp import FTPClient
 
 
@@ -10,27 +8,26 @@ def get_ftp(args: argparse.Namespace) -> FTPClient:
 
   if ftp.login(args.user, args.passwd):
     return ftp
+
   else:
     raise Exception("user not logged-in")
 
 
 def problem_1(args: argparse.Namespace):
   ftp = get_ftp(args)
-
-  message = ftp.get_response("220").replace("220", "").strip(" ()")
-  print(message)
+  print(ftp.get_content("220").strip(" ()"))
 
 
 def problem_2(args: argparse.Namespace):
   ftp = get_ftp(args)
 
   ftp.send(['SYST\r\n'])
-  print("success")
+  print(ftp.get_content("215"))
 
-def problem_3(args: argparse.Namespace):
+
+def problem_3(args: argparse.Namespace, dirname):
   ftp = get_ftp(args)
-
-  ftp.ls()
+  ftp.ls(dirname)
 
 
 def problem_4(args: argparse.Namespace, command):
@@ -67,10 +64,11 @@ def problem_7(args: argparse.Namespace):
   else:
     print("fail")
 
+
 def problem_8(args: argparse.Namespace):
   ftp = get_ftp(args)
 
-  if ftp.remove("test2"):
+  if ftp.rmdir("test2"):
     print("success")
   else:
     print("fail")
@@ -100,7 +98,16 @@ if __name__ == '__main__':
           problem_2(args)
 
         if "3" in command:
-          problem_3(args)
+          print("using default folder? (y/n) ", end='')
+          command1 = input()
+
+          dirname = ""
+          if command1 == 'n':
+            print("which folder it is? ", end='')
+            dirname = input()
+
+          print(f"\ncontent of /{dirname}")
+          problem_3(args, dirname)
 
         if "4" in command:
           problem_4(args, command)

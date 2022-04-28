@@ -49,6 +49,10 @@ class FTPClient:
     
     return ""
   
+  def get_content(self, code) -> str:
+    response = self.get_response(code)
+    return response.replace(code, "").strip()
+  
   def get_data(self) -> str:
     response = ""
     while True:
@@ -69,6 +73,14 @@ class FTPClient:
 
       if not self.get_response("230"):
         return False
+
+    return True
+
+  def cd(self, dirname) -> bool:
+    self.send([f'CWD {dirname}\r\n'])
+
+    if not self.get_response("230"):
+      return False
 
     return True
 
@@ -147,7 +159,7 @@ class FTPClient:
 
     return False
 
-  def remove(self, dirname) -> bool:
+  def rmdir(self, dirname) -> bool:
     self.send([f'RMD {self.workdir}/{dirname}\r\n'])
 
     if self.get_response("250"):
