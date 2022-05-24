@@ -1,14 +1,16 @@
-from email.policy import default
 from threading import Thread
-from typing import List
+from typing import List, Optional
+
+from sklearn.utils import check_array
 from utils import Reply
 import socket
 
 
 class ClientHandler(Thread):
-  def __init__(self, command_socket: socket.socket, user: str, passwd: str) -> None:
+  def __init__(self, command_socket: socket.socket, root: str, user: str, passwd: str) -> None:
     Thread.__init__(self)
 
+    self.root = root
     self.user = user
     self.passwd = passwd
 
@@ -21,23 +23,23 @@ class ClientHandler(Thread):
 
     self.command_socket.close()
   
-  def check_auth(self) -> None:
+  def check_auth(self) -> Optional[Reply]:
     if len(self.user) or len(self.passwd):
       return Reply(530, "Please login with USER and PASS.")
   
   def validate_user(self, user) -> Reply:
-    self.user.replace(user, "")
+    self.user = self.user.replace(user, "")
 
     if len(self.user):
       return Reply(530, "Permission denied.")
     
     return Reply(331, "Please specify the password.")
   
-  def validate_passwd(self, passwd) -> Reply:
+  def validate_password(self, passwd) -> Reply:
     if len(self.user):
       return Reply(503, "Login with USER first.")
 
-    self.passwd.replace(passwd, "")
+    self.passwd = self.passwd.replace(passwd, "")
 
     if len(self.passwd):
       return Reply(530, "Login incorrect.")
@@ -47,6 +49,7 @@ class ClientHandler(Thread):
   def run(self):
     while True:
       command = self.command_socket.recv(4096)
+      print(command)
 
       if command:
         try:
@@ -62,7 +65,13 @@ class ClientHandler(Thread):
             reply = self.validate_user(argument)
 
           elif command == "PASS":
-            reply = self.validate_passwd(argument)
+            reply = self.validate_password(argument)
+
+          elif command == "QUIT":
+            reply = Reply(221, "Goodbye.")
+          
+          else:
+            reply = Reply()
 
           if reply:
             self.command_socket.sendall(reply.get().encode("utf-8"))

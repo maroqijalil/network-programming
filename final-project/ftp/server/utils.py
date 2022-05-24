@@ -1,5 +1,5 @@
 class Reply:
-  def __init__(self, code, message) -> None:
+  def __init__(self, code = 500, message = "Command unrecognized.") -> None:
     self.code = code
     self.message = message
   

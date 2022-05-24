@@ -13,6 +13,7 @@ class FTPServer:
     self.port = int(config['port'])
     self.user = config['user']
     self.passwd = config['password']
+    self.root = config['root']
 
     self.threads: List[ClientHandler] = []
 
@@ -46,7 +47,7 @@ class FTPServer:
           if ready_socket == self.socket:
             client_socket, _ = self.socket.accept()
 
-            client = ClientHandler(client_socket, self.user, self.passwd)
+            client = ClientHandler(client_socket, self.root, self.user, self.passwd)
             client.start()
             self.threads.append(client)
 
