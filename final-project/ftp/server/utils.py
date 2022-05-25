@@ -2,9 +2,17 @@ class Reply:
   def __init__(self, code = 500, message = "Command unrecognized.") -> None:
     self.code = code
     self.message = message
-  
+
+    self.reply = f'{self.code} {self.message}\r\n'
+
+  def __add__(self, other):
+    reply = Reply()
+    reply.reply = self.reply + other.reply
+
+    return reply
+
   def get(self) -> str:
-    return f'{self.code} {self.message}\r\n'
+    return self.reply
 
 
 class Config:

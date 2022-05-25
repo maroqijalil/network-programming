@@ -1,7 +1,6 @@
+import os
 from threading import Thread
 from typing import List, Optional
-
-from sklearn.utils import check_array
 from utils import Reply
 import socket
 
@@ -13,9 +12,12 @@ class ClientHandler(Thread):
     self.root = root
     self.user = user
     self.passwd = passwd
+    self.workdir = "/"
 
     self.command_socket = command_socket
     self.data_socket: socket.socket = None
+
+    self.reply = Reply(220, "(myFTP 0.0.0)")
 
   def __del__(self) -> None:
     if self.data_socket:
@@ -45,15 +47,29 @@ class ClientHandler(Thread):
       return Reply(530, "Login incorrect.")
     
     return Reply(230, "Login successful.")
+  
+  def cwd(self, directory: str) -> Reply:
+    if directory:
+      if directory[0] != "/":
+        directory = self.workdir + directory
+      
+      if os.path.isdir(self.root + directory):
+        self.workdir = directory
+
+        return Reply(250, "Directory successfully changed.")
+
+    return Reply(550, "Failed to change directory.")
 
   def run(self):
     while True:
-      command = self.command_socket.recv(4096)
+      command = self.command_socket.recv(4096).decode("utf-8")
+
+      print(self.command_socket.getpeername(), end=": ")
       print(command)
 
       if command:
         try:
-          commands = command.decode("utf-8").split()
+          commands = command.split()
           command = commands[0]
 
           argument = ""
@@ -69,11 +85,15 @@ class ClientHandler(Thread):
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
-          
+
           else:
             reply = Reply()
 
           if reply:
+            if self.reply:
+              reply = self.reply + reply
+              self.reply = None
+
             self.command_socket.sendall(reply.get().encode("utf-8"))
 
         except Exception as e:
