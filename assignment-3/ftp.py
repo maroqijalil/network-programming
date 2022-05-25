@@ -136,6 +136,17 @@ class FTPClient:
       return True
 
     return False
+  
+  def retreive(self, filename):
+    self.type('I')
+    self.pasv()
+    self.send([f'RETR {self.workdir}/{filename}\r\n'])
+
+    filename = os.getcwd() + f"/dataset/{filename}"
+
+    if not os.path.exists(filename):
+      with open(filename, "wb") as file:
+        file.write(self.get_data())
 
   def store(self, filename, targetdir = ""):
     self.type('I')

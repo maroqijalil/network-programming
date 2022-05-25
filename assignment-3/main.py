@@ -131,6 +131,11 @@ def problem_8(args: argparse.Namespace):
     print("fail")
 
 
+def problem_9(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.retreive("test.txt")
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
   parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
@@ -171,6 +176,9 @@ if __name__ == '__main__':
 
         if "8" in command:
           problem_8(args)
+
+        if "9" in command:
+          problem_9(args)
 
       except Exception as e:
         print(e)

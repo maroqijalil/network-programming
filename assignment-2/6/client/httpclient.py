@@ -150,7 +150,7 @@ class HttpClient:
     filename = paths[len(paths) - 1]
 
     if response.get_content_type().__contains__('html'):
-          self.handle_html(response)
+      self.handle_html(response)
 
     else:
       datasetpath = os.path.dirname(__file__) + '/dataset'
