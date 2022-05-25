@@ -24,6 +24,9 @@ class DataHandler(Thread):
   def __del__(self) -> None:
     self.socket.close()
 
+  def is_ready(self) -> bool:
+    return self.callback is not None
+
   def get_reply(self) -> Reply:
     return self.reply
   
@@ -150,6 +153,7 @@ class CommandHandler(Thread):
 
       if data_socket.connect():
         self.data_thread = DataHandler(data_socket.get(), self.data_type)
+        self.data_thread.start()
 
         address = self.host.split('.')
         port = [int(port / 256), (port % 256)]
@@ -183,10 +187,11 @@ class CommandHandler(Thread):
         try:
           items = ""
 
-          for item in os.popen(f"ls -n {directory}").readlines():
-            if len(item) and (item[0] == '-' or item[0] == '-'):
-              items += item
-              items += "\r\n"
+          if os.path.exists(directory):
+            for item in os.popen(f"ls -n {directory}").readlines():
+              if len(item) and (item[0] == '-' or item[0] == '-'):
+                items += item
+                items += "\r\n"
           
           client_socket.sendall(items.encode(type))
           return Reply(226, "Directory send OK.")
@@ -241,7 +246,7 @@ class CommandHandler(Thread):
             reply = self.reply + reply
             self.reply = None
           
-          if self.data_thread:
+          if self.data_thread and self.data_thread.is_ready():
             reply = reply + self.get_data_reply()
 
             self.data_thread.close()
