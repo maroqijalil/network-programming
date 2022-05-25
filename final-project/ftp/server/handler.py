@@ -1,28 +1,49 @@
-import os
+from random import randint
 from threading import Thread
 from typing import List, Optional
-from utils import Reply
+from utils import Reply, Socket
+import os
 import socket
+import time
 
 
-class ClientHandler(Thread):
-  def __init__(self, command_socket: socket.socket, root: str, user: str, passwd: str) -> None:
+class DataHandler(Thread):
+  def __init__(self, data_scoket: socket.socket):
     Thread.__init__(self)
 
+    self.data_socket = data_scoket
+
+  def run(self):
+    while True:
+      client_socket, _ = self.data_socket.accept()
+
+  @staticmethod
+  def is_port_open(host, port):
+    data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    result = data_socket.connect_ex((host, port))
+    data_socket.close()
+
+    return result
+
+
+class CommandHandler(Thread):
+  def __init__(self, host: str, command_socket: socket.socket, root: str, user: str, passwd: str) -> None:
+    Thread.__init__(self)
+
+    self.host = host
     self.root = root
     self.user = user
     self.passwd = passwd
     self.workdir = "/"
 
     self.command_socket = command_socket
-    self.data_socket: socket.socket = None
+
+    self.data_thread: DataHandler = None
 
     self.reply = Reply(220, "(myFTP 0.0.0)")
 
   def __del__(self) -> None:
-    if self.data_socket:
-      self.data_socket.close()
-
     self.command_socket.close()
   
   def check_auth(self) -> Optional[Reply]:
@@ -48,10 +69,15 @@ class ClientHandler(Thread):
     
     return Reply(230, "Login successful.")
   
+  def handle_workdir(self, path: str) -> str:
+    if path[0] != "/":
+      path = self.workdir + path
+    
+    return path
+
   def cwd(self, directory: str) -> Reply:
     if directory:
-      if directory[0] != "/":
-        directory = self.workdir + directory
+      directory = self.handle_workdir(directory)
       
       if os.path.isdir(self.root + directory):
         self.workdir = directory
@@ -59,6 +85,36 @@ class ClientHandler(Thread):
         return Reply(250, "Directory successfully changed.")
 
     return Reply(550, "Failed to change directory.")
+  
+  def pasv(self) -> Reply:
+    port = None
+    start_time = time.perf_counter()
+
+    while True:
+      port = randint(59999, 65535)
+
+      if DataHandler.is_port_open(self.host, port):
+        break
+
+      if time.perf_counter() - start_time > 3.0:
+        break
+    
+    if port:
+      data_socket = Socket(self.host, port)
+
+      if data_socket.connect():
+        self.data_thread = DataHandler(data_socket.get())
+
+        address = self.host.split('.')
+        port = [int(port / 256), (port % 256)]
+
+        return Reply(227, f"Entering Passive Mode ({address[0]},{address[1]},{address[2]},{address[3]},{port[0]},{port[1]}).")
+
+    return Reply(421, "Failed to enter Passive Mode.")
+
+  def retr(self, filepath: str) -> Reply:
+    if filepath:
+      filepath = self.handle_workdir(filepath)
 
   def run(self):
     while True:
@@ -83,6 +139,15 @@ class ClientHandler(Thread):
           elif command == "PASS":
             reply = self.validate_password(argument)
 
+          elif command == "CWD":
+            reply = self.cwd(argument)
+
+          elif command == "LIST":
+            reply = self.pasv()
+
+          elif command == "PASV":
+            reply = self.pasv()
+
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
 
@@ -102,3 +167,6 @@ class ClientHandler(Thread):
       else:
         self.command_socket.close()
         break
+    
+    if self.data_thread:
+      self.data_thread.join()

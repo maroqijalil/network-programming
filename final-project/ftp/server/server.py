@@ -1,42 +1,37 @@
 from configparser import ConfigParser
-from handler import ClientHandler
-from typing import List
-import select
 import socket
+from handler import CommandHandler
+from typing import List
+from utils import Socket
+import select
 
 
 class FTPServer:
   def __init__(self, config: ConfigParser) -> None:
-    self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    self.socket = Socket(config['host'], int(config['port']))
 
     self.host = config['host']
-    self.port = int(config['port'])
     self.user = config['user']
     self.passwd = config['password']
     self.root = config['root']
 
-    self.threads: List[ClientHandler] = []
+    self.threads: List[CommandHandler] = []
 
   def __del__(self):
     self.socket.close()
 
   def connect(self) -> bool:
-    try:
-      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-      try:
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-      except AttributeError:
-        pass
-
-      self.socket.bind((self.host, self.port))
-      self.socket.listen(100)
+    if self.socket.connect(100):
+      self.socket = self.socket.get()
 
       return True
+    
+    return False
 
-    except Exception:
-      return False
+  def run(self) -> None:
+    if self.socket is not socket.socket:
+      return
 
-  def run(self):
     is_running = True
 
     while is_running:
@@ -47,7 +42,7 @@ class FTPServer:
           if ready_socket == self.socket:
             client_socket, _ = self.socket.accept()
 
-            client = ClientHandler(client_socket, self.root, self.user, self.passwd)
+            client = CommandHandler(self.host, client_socket, self.root, self.user, self.passwd)
             client.start()
             self.threads.append(client)
 
@@ -55,5 +50,6 @@ class FTPServer:
         is_running = False
 
     self.socket.close()
+
     for client in self.threads:
       client.join()
