@@ -8,14 +8,15 @@ import time
 
 
 class DataHandler(Thread):
-  def __init__(self, data_scoket: socket.socket):
+  def __init__(self, socket: socket.socket, type: str):
     Thread.__init__(self)
 
-    self.data_socket = data_scoket
+    self.socket = socket
+    self.type = type
 
   def run(self):
     while True:
-      client_socket, _ = self.data_socket.accept()
+      client_socket, _ = self.socket.accept()
 
   @staticmethod
   def is_port_open(host, port):
@@ -28,7 +29,7 @@ class DataHandler(Thread):
 
 
 class CommandHandler(Thread):
-  def __init__(self, host: str, command_socket: socket.socket, root: str, user: str, passwd: str) -> None:
+  def __init__(self, host: str, socket: socket.socket, root: str, user: str, passwd: str) -> None:
     Thread.__init__(self)
 
     self.host = host
@@ -37,14 +38,15 @@ class CommandHandler(Thread):
     self.passwd = passwd
     self.workdir = "/"
 
-    self.command_socket = command_socket
+    self.socket = socket
 
+    self.data_type = "ascii"
     self.data_thread: DataHandler = None
 
     self.reply = Reply(220, "(myFTP 0.0.0)")
 
   def __del__(self) -> None:
-    self.command_socket.close()
+    self.socket.close()
   
   def check_auth(self) -> Optional[Reply]:
     if len(self.user) or len(self.passwd):
@@ -85,6 +87,19 @@ class CommandHandler(Thread):
         return Reply(250, "Directory successfully changed.")
 
     return Reply(550, "Failed to change directory.")
+
+  def type(self, data_type: str) -> Reply:
+    message = ""
+
+    if data_type == "I":
+      self.data_type = "utf-8"
+      message = "Switching to Binary mode."
+
+    if data_type == "A":
+      self.data_type = "ascii"
+      message = "Switching to ASCII mode."
+
+    return Reply(200, message)
   
   def pasv(self) -> Reply:
     port = None
@@ -103,7 +118,7 @@ class CommandHandler(Thread):
       data_socket = Socket(self.host, port)
 
       if data_socket.connect():
-        self.data_thread = DataHandler(data_socket.get())
+        self.data_thread = DataHandler(data_socket.get(), self.data_type)
 
         address = self.host.split('.')
         port = [int(port / 256), (port % 256)]
@@ -118,9 +133,9 @@ class CommandHandler(Thread):
 
   def run(self):
     while True:
-      command = self.command_socket.recv(4096).decode("utf-8")
+      command = self.socket.recv(4096).decode("utf-8")
 
-      print(self.command_socket.getpeername(), end=": ")
+      print(self.socket.getpeername(), end=": ")
       print(command)
 
       if command:
@@ -142,10 +157,13 @@ class CommandHandler(Thread):
           elif command == "CWD":
             reply = self.cwd(argument)
 
-          elif command == "LIST":
-            reply = self.pasv()
+          elif command == "TYPE":
+            reply = self.type(argument)
 
           elif command == "PASV":
+            reply = self.pasv()
+
+          elif command == "LIST":
             reply = self.pasv()
 
           elif command == "QUIT":
@@ -159,13 +177,13 @@ class CommandHandler(Thread):
               reply = self.reply + reply
               self.reply = None
 
-            self.command_socket.sendall(reply.get().encode("utf-8"))
+            self.socket.sendall(reply.get().encode("utf-8"))
 
         except Exception as e:
           pass
 
       else:
-        self.command_socket.close()
+        self.socket.close()
         break
     
     if self.data_thread:
