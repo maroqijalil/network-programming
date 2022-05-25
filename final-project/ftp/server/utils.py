@@ -27,6 +27,7 @@ class Socket:
   def get(self) -> socket.socket:
     return self.socket
 
+
 class Reply:
   def __init__(self, code = 500, message = "Command unrecognized.") -> None:
     self.code = code
@@ -36,9 +37,14 @@ class Reply:
 
   def __add__(self, other):
     reply = Reply()
-    reply.reply = self.reply + other.reply
+
+    if other:
+      reply.reply = self.reply + other.reply
+    else:
+      reply.reply = self.reply
 
     return reply
+    
 
   def get(self) -> str:
     return self.reply

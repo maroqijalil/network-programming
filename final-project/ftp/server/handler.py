@@ -1,6 +1,6 @@
 from random import randint
 from threading import Thread
-from typing import List, Optional
+from typing import Callable, List, Optional
 from utils import Reply, Socket
 import os
 import socket
@@ -8,15 +8,41 @@ import time
 
 
 class DataHandler(Thread):
-  def __init__(self, socket: socket.socket, type: str):
+  def __init__(self, data_socket: socket.socket, type: str):
     Thread.__init__(self)
 
-    self.socket = socket
+    self.socket = data_socket
     self.type = type
+    
+    self.client_socket: socket.socket = None
+
+    self.callback: Callable[[socket.socket, str], Reply] = None
+    self.is_running = True
+
+    self.reply: Reply = None
+
+  def __del__(self) -> None:
+    self.socket.close()
+
+  def get_reply(self) -> Reply:
+    return self.reply
+  
+  def close(self) -> None:
+    self.is_running = False
+  
+  def set_callback(self, callback: Callable[[socket.socket, str], Reply]) -> None:
+    self.callback = callback
 
   def run(self):
-    while True:
-      client_socket, _ = self.socket.accept()
+    while self.is_running:
+      if not self.client_socket:
+        self.client_socket, _ = self.socket.accept()
+      
+      if self.callback:
+        self.reply = self.callback(self.client_socket, self.type)
+        self.client_socket.close()
+
+        self.callback = None
 
   @staticmethod
   def is_port_open(host, port):
@@ -44,6 +70,7 @@ class CommandHandler(Thread):
     self.data_thread: DataHandler = None
 
     self.reply = Reply(220, "(myFTP 0.0.0)")
+    self.is_running = True
 
   def __del__(self) -> None:
     self.socket.close()
@@ -101,6 +128,10 @@ class CommandHandler(Thread):
 
     return Reply(200, message)
   
+  def check_data_connection(self) -> Reply:
+    if not self.data_thread:
+      return Reply(425, "Use PORT or PASV first.")
+
   def pasv(self) -> Reply:
     port = None
     start_time = time.perf_counter()
@@ -126,13 +157,49 @@ class CommandHandler(Thread):
         return Reply(227, f"Entering Passive Mode ({address[0]},{address[1]},{address[2]},{address[3]},{port[0]},{port[1]}).")
 
     return Reply(421, "Failed to enter Passive Mode.")
+  
+  def get_data_reply(self) -> Reply:
+    start_time = time.perf_counter()
 
-  def retr(self, filepath: str) -> Reply:
-    if filepath:
-      filepath = self.handle_workdir(filepath)
+    while True:
+      if not self.data_thread:
+        break
+
+      reply = self.data_thread.get_reply()
+      if reply:
+        return reply
+
+      if time.perf_counter() - start_time > 3.0:
+        break
+    
+    return None
+
+  def ls(self, directory: str) -> Reply:
+    if directory:
+      directory = self.handle_workdir(directory)
+      directory = self.root + directory
+
+      def callback(client_socket: socket.socket, type: str) -> Reply:
+        try:
+          items = ""
+
+          for item in os.popen(f"ls -n {directory}").readlines():
+            if len(item) and (item[0] == '-' or item[0] == '-'):
+              items += item
+              items += "\r\n"
+          
+          client_socket.sendall(items.encode(type))
+          return Reply(226, "Directory send OK.")
+
+        except Exception as e:
+          return Reply(451, "Requested action aborted. Local error in processing.")
+
+      self.data_thread.set_callback(callback)
+
+      return Reply(150, "Here comes the directory listing.")
 
   def run(self):
-    while True:
+    while self.is_running:
       command = self.socket.recv(4096).decode("utf-8")
 
       print(self.socket.getpeername(), end=": ")
@@ -146,7 +213,7 @@ class CommandHandler(Thread):
           argument = ""
           if len(commands) > 1: argument = commands[1]
 
-          reply: Reply = None
+          reply = Reply()
 
           if command == "USER":
             reply = self.validate_user(argument)
@@ -164,26 +231,29 @@ class CommandHandler(Thread):
             reply = self.pasv()
 
           elif command == "LIST":
-            reply = self.pasv()
+            reply = self.ls(argument)
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
+            self.is_running = False
+          
+          if self.reply:
+            reply = self.reply + reply
+            self.reply = None
+          
+          if self.data_thread:
+            reply = reply + self.get_data_reply()
 
-          else:
-            reply = Reply()
+            self.data_thread.close()
+            self.data_thread.join()
+            self.data_thread = None
 
-          if reply:
-            if self.reply:
-              reply = self.reply + reply
-              self.reply = None
-
-            self.socket.sendall(reply.get().encode("utf-8"))
+          self.socket.sendall(reply.get().encode("utf-8"))
 
         except Exception as e:
           pass
 
       else:
-        self.socket.close()
         break
     
     if self.data_thread:

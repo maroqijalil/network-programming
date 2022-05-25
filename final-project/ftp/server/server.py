@@ -29,7 +29,7 @@ class FTPServer:
     return False
 
   def run(self) -> None:
-    if self.socket is not socket.socket:
+    if self.socket is Socket:
       return
 
     is_running = True
