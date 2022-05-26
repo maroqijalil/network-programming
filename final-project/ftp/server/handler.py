@@ -25,9 +25,6 @@ class DataHandler(Thread):
 
   def is_ready(self) -> bool:
     return self.callback is not None
-
-  def get_reply(self) -> Reply:
-    return self.reply
   
   def close(self) -> None:
     self.is_running = False
@@ -62,8 +59,8 @@ class DataHandler(Thread):
     while True:
       reply = data_handler.reply
       if reply:
-        print(reply.get())
         command_socket.sendall(reply.get().encode("utf-8"))
+        break
 
       if time.perf_counter() - start_time > 3.0:
         break
@@ -332,7 +329,7 @@ class CommandHandler(Thread):
             reply = self.reply + reply
             self.reply = None
           
-          if self.data_thread and self.data_thread.is_ready() and self.executor is not None:
+          if self.data_thread and self.data_thread.is_ready() and not self.executor:
             self.executor = Thread(target=DataHandler.handle, args=(self.socket, self.data_thread, self.close_data_connection))
             self.executor.start()
 
