@@ -345,6 +345,46 @@ class CommandHandler(Thread):
   def pwd(self) -> Reply:
     return Reply(257, f"\"{self.workdir}\" is the current directory.")
 
+  def help(self) -> Reply:
+    self.socket.sendall(("""
+      214-The following commands are recognized.\r\n
+      CWD  DELE HELP LIST MKD  PASS PASV PWD
+      QUIT RETR RMD  RNFR RNTO STOR TYPE USER 
+      """).encode("utf-8"))
+    return Reply(214, "Help OK.")
+  
+  def dele(self, filename) -> Reply:
+    if filename:
+      filepath = self.handle_directory(filename)
+
+      try:
+        if os.path.isfile(filepath):
+          os.remove(filepath)
+
+          return Reply(250, "Delete operation successful.")
+      
+      except Exception as e:
+        print(e)
+        return Reply(451, "Requested action aborted. Local error in processing.")
+
+    return Reply(550, "Delete operation failed.")
+  
+  def rmd(self, directory) -> Reply:
+    if directory:
+      directory = self.handle_directory(directory)
+
+      try:
+        if os.path.isdir(directory):
+          os.rmdir(directory)
+
+          return Reply(250, "Remove directory operation successful.")
+      
+      except Exception as e:
+        print(e)
+        return Reply(451, "Requested action aborted. Local error in processing.")
+
+    return Reply(550, "Remove directory operation failed.")
+
   def run(self):
     while self.is_running:
       command = self.socket.recv(4096).decode("utf-8")
@@ -396,6 +436,15 @@ class CommandHandler(Thread):
 
             elif command == "PWD":
               reply = self.pwd()
+
+            elif command == "HELP":
+              reply = self.help()
+
+            elif command == "DELE":
+              reply = self.dele(argument)
+
+            elif command == "RMD":
+              reply = self.rmd(argument)
 
             elif command in ["LIST", "RETR", "STOR"]:
               if not self.data_connection.check_connection():
