@@ -55,6 +55,21 @@ class DataHandler(Thread):
 
     return result
 
+  @staticmethod
+  def handle(command_socket: socket.socket, data_handler, callback: Callable[[], None]) -> None:
+    start_time = time.perf_counter()
+
+    while True:
+      reply = data_handler.reply
+      if reply:
+        print(reply.get())
+        command_socket.sendall(reply.get().encode("utf-8"))
+
+      if time.perf_counter() - start_time > 3.0:
+        break
+    
+    callback()
+
 
 class CommandHandler(Thread):
   def __init__(self, host: str, socket: socket.socket, root: str, user: str, passwd: str) -> None:
@@ -70,6 +85,7 @@ class CommandHandler(Thread):
 
     self.data_type = "ascii"
     self.data_thread: DataHandler = None
+    self.executor: Thread = None
 
     self.reply = Reply(220, "(myFTP 0.0.0)")
     self.is_running = True
@@ -105,6 +121,13 @@ class CommandHandler(Thread):
       path = self.workdir + path
     
     return path
+
+  def close_data_connection(self) -> None:
+    self.data_thread.close()
+    self.data_thread.join()
+    self.data_thread = None
+
+    self.executor = None
 
   def cwd(self, directory: str) -> Reply:
     if directory:
@@ -174,22 +197,6 @@ class CommandHandler(Thread):
         return Reply(227, f"Entering Passive Mode ({address[0]},{address[1]},{address[2]},{address[3]},{port[0]},{port[1]}).")
 
     return Reply(421, "Failed to enter Passive Mode.")
-  
-  def get_data_reply(self) -> Reply:
-    start_time = time.perf_counter()
-
-    while True:
-      if not self.data_thread:
-        break
-
-      reply = self.data_thread.get_reply()
-      if reply:
-        return reply
-
-      if time.perf_counter() - start_time > 3.0:
-        break
-    
-    return None
 
   def ls(self, directory: str = "") -> Reply:
     directory = self.handle_workdir(directory)
@@ -325,20 +332,21 @@ class CommandHandler(Thread):
             reply = self.reply + reply
             self.reply = None
           
-          if self.data_thread and self.data_thread.is_ready():
-            reply = reply + self.get_data_reply()
-
-            self.data_thread.close()
-            self.data_thread.join()
-            self.data_thread = None
+          if self.data_thread and self.data_thread.is_ready() and self.executor is not None:
+            self.executor = Thread(target=DataHandler.handle, args=(self.socket, self.data_thread, self.close_data_connection))
+            self.executor.start()
 
           self.socket.sendall(reply.get().encode("utf-8"))
 
         except Exception as e:
+          print(e)
           pass
 
       else:
         break
     
     if self.data_thread:
-      self.data_thread.join()
+      self.close_data_connection()
+
+      if self.executor:
+        self.executor.join()
