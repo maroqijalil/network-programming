@@ -303,6 +303,27 @@ class CommandHandler(Thread):
 
     return Reply(150, "Ok to send data.")
 
+  def rnfr(self, source) -> Reply:
+    if source:
+      source = self.handle_directory(source)
+      if os.path.exists(source):
+        self.file_renaming = FileRenaming(source)
+
+        return Reply(350, "Ready for RNTO.")
+
+    return Reply(550, "RNFR command failed.")
+
+  def rnto(self, target) -> Reply:
+    if not self.file_renaming:
+      return Reply(503, "RNFR required first.")
+
+    if target:
+      self.file_renaming.execute(self.handle_directory(target))
+
+      return Reply(250, "Rename successful.")
+
+    return Reply(550, "Rename failed.")
+
   def run(self):
     while self.is_running:
       command = self.socket.recv(4096).decode("utf-8")
@@ -344,8 +365,11 @@ class CommandHandler(Thread):
           elif command == "STOR":
             reply = self.stor(argument)
 
-          elif command == "STOR":
-            reply = self.stor(argument)
+          elif command == "RNFR":
+            reply = self.rnfr(argument)
+
+          elif command == "RNTO":
+            reply = self.rnfr(argument)
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
