@@ -14,10 +14,11 @@ class FTPClient:
     self.host = host
     self.responses: List[str] = []
   
+  def close_data_connection(self) -> None:
+    self.data_socket.close()
+    self.data_socket = None
+  
   def __del__(self):
-    if self.data_socket:
-      self.data_socket.close()
-
     self.send(['QUIT\r\n'])
     self.conn_socket.close()
 
@@ -62,6 +63,8 @@ class FTPClient:
         response += data.strip().decode('utf-8')
       else:
         break
+    
+    self.close_data_connection()
     
     return response
 
@@ -156,8 +159,9 @@ class FTPClient:
     if os.path.exists(filepath):
       with open(filepath, 'rb') as file:
         self.data_socket.sendall(file.read())
+        self.close_data_connection()
 
-        self.send([f'STOR {self.workdir}/{targetdir}/{filename}\r\n'])
+        self.send([f'STOR {filename}\r\n'])
 
     else:
       raise Exception(f"file not found in {filepath}")

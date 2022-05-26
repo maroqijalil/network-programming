@@ -123,6 +123,12 @@ class CommandHandler(Thread):
     elif self.data_type == "ascii":
       return "r"
 
+  def get_write_type(self) -> str:
+    if self.data_type == "utf-8":
+      return "wb"
+    elif self.data_type == "ascii":
+      return "w"
+
   def get_mode_type(self) -> str:
     if self.data_type == "utf-8":
       return "Binary"
@@ -241,6 +247,35 @@ class CommandHandler(Thread):
 
     return Reply(550, "Failed to open file.")
 
+  def stor(self, filename: str) -> Reply:
+    if filename:
+      def callback(client_socket: socket.socket) -> Reply:
+        try:
+          filepath = self.handle_workdir(filename)
+          filepath = self.root + filepath
+          content = b""
+
+          while True:
+            buffer = client_socket.recv(1024)
+
+            if buffer:
+              content += buffer
+            else:
+              break
+
+          if not os.path.isfile(filepath):
+            with open(filepath, self.get_write_type()) as file:
+              file.write(content)
+
+          return Reply(226, "Transfer complete.")
+
+        except Exception as e:
+          return Reply(451, "Requested action aborted. Local error in processing.")
+
+      self.data_thread.set_callback(callback)
+
+    return Reply(150, "Ok to send data.")
+
   def run(self):
     while self.is_running:
       command = self.socket.recv(4096).decode("utf-8")
@@ -278,6 +313,9 @@ class CommandHandler(Thread):
 
           elif command == "RETR":
             reply = self.retr(argument)
+
+          elif command == "STOR":
+            reply = self.stor(argument)
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
