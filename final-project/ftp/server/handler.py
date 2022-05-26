@@ -153,6 +153,8 @@ class CommandHandler(Thread):
   def check_auth(self) -> Optional[Reply]:
     if len(self.user) or len(self.passwd):
       return Reply(530, "Please login with USER and PASS.")
+
+    return None
   
   def validate_user(self, user) -> Reply:
     self.user = self.user.replace(user, "")
@@ -356,54 +358,63 @@ class CommandHandler(Thread):
           command = commands[0]
 
           argument = ""
-          if len(commands) > 1: argument = commands[1]
+          if len(commands) > 1:
+            argument = commands[1]
 
           reply = Reply()
 
           if command == "USER":
             reply = self.validate_user(argument)
 
-          elif command == "PASS":
-            reply = self.validate_password(argument)
-
-          elif command == "CWD":
-            reply = self.cwd(argument)
-
-          elif command == "TYPE":
-            reply = self.type(argument)
-
-          elif command == "PASV":
-            reply = self.pasv()
-
-          elif command == "LIST":
-            reply = self.ls(argument)
-
-          elif command == "RETR":
-            reply = self.retr(argument)
-
-          elif command == "STOR":
-            reply = self.stor(argument)
-
-          elif command == "RNFR":
-            reply = self.rnfr(argument)
-
-          elif command == "RNTO":
-            reply = self.rnto(argument)
-
-          elif command == "MKD":
-            reply = self.mkd(argument)
-
-          elif command == "PWD":
-            reply = self.pwd()
-
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
             self.is_running = False
-          
+
+          elif not self.check_auth():
+            reply = self.check_auth()
+
+            if command == "PASS":
+              reply = self.validate_password(argument)
+
+            elif command == "CWD":
+              reply = self.cwd(argument)
+
+            elif command == "TYPE":
+              reply = self.type(argument)
+
+            elif command == "PASV":
+              reply = self.pasv()
+
+            elif command == "RNFR":
+              reply = self.rnfr(argument)
+
+            elif command == "RNTO":
+              reply = self.rnto(argument)
+
+            elif command == "MKD":
+              reply = self.mkd(argument)
+
+            elif command == "PWD":
+              reply = self.pwd()
+
+            elif command in ["LIST", "RETR", "STOR"]:
+              if not self.data_connection.check_connection():
+                if command == "LIST":
+                  reply = self.ls(argument)
+
+                elif command == "RETR":
+                  reply = self.retr(argument)
+
+                elif command == "STOR":
+                  reply = self.stor(argument)
+
+              else:
+                reply = self.data_connection.check_connection()
+
           if self.reply:
             reply = self.reply + reply
             self.reply = None
-          
+
           self.data_connection.run(self.socket)
 
           self.socket.sendall(reply.get().encode("utf-8"))
