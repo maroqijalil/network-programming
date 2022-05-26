@@ -140,7 +140,7 @@ class FTPClient:
   def retreive(self, filename):
     self.type('I')
     self.pasv()
-    self.send([f'RETR {self.workdir}/{filename}\r\n'])
+    self.send([f'RETR {filename}\r\n'])
 
     filename = os.getcwd() + f"/dataset/{filename}"
 

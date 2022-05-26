@@ -8,15 +8,14 @@ import time
 
 
 class DataHandler(Thread):
-  def __init__(self, data_socket: socket.socket, type: str):
+  def __init__(self, data_socket: socket.socket):
     Thread.__init__(self)
 
     self.socket = data_socket
-    self.type = type
     
     self.client_socket: socket.socket = None
 
-    self.callback: Callable[[socket.socket, str], Reply] = None
+    self.callback: Callable[[socket.socket], Reply] = None
     self.is_running = True
 
     self.reply: Reply = None
@@ -33,7 +32,7 @@ class DataHandler(Thread):
   def close(self) -> None:
     self.is_running = False
   
-  def set_callback(self, callback: Callable[[socket.socket, str], Reply]) -> None:
+  def set_callback(self, callback: Callable[[socket.socket], Reply]) -> None:
     self.callback = callback
 
   def run(self):
@@ -42,7 +41,7 @@ class DataHandler(Thread):
         self.client_socket, _ = self.socket.accept()
       
       if self.callback:
-        self.reply = self.callback(self.client_socket, self.type)
+        self.reply = self.callback(self.client_socket)
         self.client_socket.close()
 
         self.callback = None
@@ -118,18 +117,26 @@ class CommandHandler(Thread):
 
     return Reply(550, "Failed to change directory.")
 
-  def type(self, data_type: str) -> Reply:
-    message = ""
+  def get_read_type(self) -> str:
+    if self.data_type == "utf-8":
+      return "rb"
+    elif self.data_type == "ascii":
+      return "r"
 
+  def get_mode_type(self) -> str:
+    if self.data_type == "utf-8":
+      return "Binary"
+    elif self.data_type == "ascii":
+      return "ASCII"
+
+  def type(self, data_type: str) -> Reply:
     if data_type == "I":
       self.data_type = "utf-8"
-      message = "Switching to Binary mode."
 
     if data_type == "A":
       self.data_type = "ascii"
-      message = "Switching to ASCII mode."
 
-    return Reply(200, message)
+    return Reply(200, f"Switching to {self.get_mode_type()} mode.")
   
   def check_data_connection(self) -> Reply:
     if not self.data_thread:
@@ -152,7 +159,7 @@ class CommandHandler(Thread):
       data_socket = Socket(self.host, port)
 
       if data_socket.connect():
-        self.data_thread = DataHandler(data_socket.get(), self.data_type)
+        self.data_thread = DataHandler(data_socket.get())
         self.data_thread.start()
 
         address = self.host.split('.')
@@ -178,30 +185,61 @@ class CommandHandler(Thread):
     
     return None
 
-  def ls(self, directory: str) -> Reply:
-    if directory:
-      directory = self.handle_workdir(directory)
-      directory = self.root + directory
+  def ls(self, directory: str = "") -> Reply:
+    directory = self.handle_workdir(directory)
+    directory = self.root + directory
 
-      def callback(client_socket: socket.socket, type: str) -> Reply:
-        try:
-          items = ""
+    def callback(client_socket: socket.socket) -> Reply:
+      try:
+        items = ""
 
-          if os.path.exists(directory):
-            for item in os.popen(f"ls -n {directory}").readlines():
-              if len(item) and (item[0] == '-' or item[0] == '-'):
-                items += item
-                items += "\r\n"
-          
-          client_socket.sendall(items.encode(type))
-          return Reply(226, "Directory send OK.")
+        if os.path.exists(directory):
+          for item in os.popen(f"ls -n {directory}").readlines():
+            if len(item) and (item[0] == '-' or item[0] == 'd'):
+              items += item.replace('\n', "")
+              items += "\r\n"
 
-        except Exception as e:
-          return Reply(451, "Requested action aborted. Local error in processing.")
+        client_socket.sendall(items.encode(self.data_type))
+        return Reply(226, "Directory send OK.")
 
-      self.data_thread.set_callback(callback)
+      except Exception as e:
+        return Reply(451, "Requested action aborted. Local error in processing.")
 
-      return Reply(150, "Here comes the directory listing.")
+    self.data_thread.set_callback(callback)
+
+    return Reply(150, "Here comes the directory listing.")
+
+  def retr(self, filename: str) -> Reply:
+    if filename:
+      callback = None
+
+      try:
+        filepath = self.handle_workdir(filename)
+        filepath = self.root + filepath
+        content = ""
+
+        if os.path.isfile(filepath):
+          with open(filepath, self.get_read_type()) as file:
+            content = file.read()
+
+          if self.data_type == "ascii":
+            content = content.encode(self.data_type)
+
+          def callback(client_socket: socket.socket) -> Reply:
+            client_socket.sendall(content)
+            return Reply(226, "Transfer complete.")
+
+      except Exception as e:
+        return Reply(451, "Requested action aborted. Local error in processing.")
+
+      if callback:
+        self.data_thread.set_callback(callback)
+        return Reply(150, f"Opening {self.get_mode_type()} mode data connection for {filename} ({len(content)} bytes).")
+
+      else:
+        self.data_thread = None
+
+    return Reply(550, "Failed to open file.")
 
   def run(self):
     while self.is_running:
@@ -237,6 +275,9 @@ class CommandHandler(Thread):
 
           elif command == "LIST":
             reply = self.ls(argument)
+
+          elif command == "RETR":
+            reply = self.retr(argument)
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
