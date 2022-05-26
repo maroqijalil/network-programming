@@ -332,13 +332,16 @@ class CommandHandler(Thread):
     if directory:
       try:
         os.mkdir(self.handle_directory(directory))
-        return Reply(250, f"{self.workdir + directory} created.")
+        return Reply(250, f"\"{self.workdir + directory}\" created.")
 
       except Exception as e:
         print(e)
         return Reply(451, "Requested action aborted. Local error in processing.")
 
     return Reply(550, "Create directory operation failed.")
+
+  def pwd(self) -> Reply:
+    return Reply(257, f"\"{self.workdir}\" is the current directory.")
 
   def run(self):
     while self.is_running:
@@ -389,6 +392,9 @@ class CommandHandler(Thread):
 
           elif command == "MKD":
             reply = self.mkd(argument)
+
+          elif command == "PWD":
+            reply = self.pwd()
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
