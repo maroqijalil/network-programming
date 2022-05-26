@@ -318,11 +318,27 @@ class CommandHandler(Thread):
       return Reply(503, "RNFR required first.")
 
     if target:
-      self.file_renaming.execute(self.handle_directory(target))
+      try:
+        self.file_renaming.execute(self.handle_directory(target))
+        return Reply(250, "Rename successful.")
 
-      return Reply(250, "Rename successful.")
+      except Exception as e:
+        print(e)
+        return Reply(451, "Requested action aborted. Local error in processing.")
 
     return Reply(550, "Rename failed.")
+
+  def mkd(self, directory) -> Reply:
+    if directory:
+      try:
+        os.mkdir(self.handle_directory(directory))
+        return Reply(250, f"{self.workdir + directory} created.")
+
+      except Exception as e:
+        print(e)
+        return Reply(451, "Requested action aborted. Local error in processing.")
+
+    return Reply(550, "Create directory operation failed.")
 
   def run(self):
     while self.is_running:
@@ -369,7 +385,10 @@ class CommandHandler(Thread):
             reply = self.rnfr(argument)
 
           elif command == "RNTO":
-            reply = self.rnfr(argument)
+            reply = self.rnto(argument)
+
+          elif command == "MKD":
+            reply = self.mkd(argument)
 
           elif command == "QUIT":
             reply = Reply(221, "Goodbye.")
