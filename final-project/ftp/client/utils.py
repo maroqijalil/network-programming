@@ -25,3 +25,21 @@ class Socket:
   
   def get(self) -> socket.socket:
     return self.socket
+
+
+class Input:
+  @staticmethod
+  def get_input_by_confirm(confirm, determine, default = ""):
+    while True:
+      print(confirm, end='')
+      command = input()
+
+      if any(avail == command for avail in ['y', 'n', '']):
+        break
+
+    result = default
+    if command == 'n':
+      print(determine, end='')
+      result = input()
+    
+    return result

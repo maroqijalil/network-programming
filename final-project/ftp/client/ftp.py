@@ -2,16 +2,18 @@ import socket
 import os
 from handler import DataConnection, DataHandler
 from typing import List
-from utils import Socket
+from utils import Input, Socket
 
 
 class FTPClient:
   def __init__(self, host, port = 21):
     self.socket = Socket(host, port)
 
+    self.host = host
+    self.root = os.getcwd()
+
     self.data_connection: DataConnection = DataConnection()
 
-    self.host = host
     self.responses: List[str] = []
 
   def close_data_connection(self) -> None:
@@ -19,7 +21,7 @@ class FTPClient:
     self.data_socket = None
 
   def __del__(self):
-    self.send(['QUIT\r\n'])
+    self.send('QUIT\r\n')
     self.socket.close()
 
   def connect(self) -> bool:
@@ -34,7 +36,9 @@ class FTPClient:
     self.socket.send(command.encode('utf-8'))
 
     response = self.socket.recv(1024)
-    response = response.strip().decode('utf-8').split('\r\n')
+    response = response.decode('utf-8').split('\r\n')
+
+    print(response)
 
     self.responses.extend(response)
 
@@ -66,71 +70,109 @@ class FTPClient:
     return response
 
   def pasv(self):
-    reply = self.send(['PASV\r\n'])
+    reply = self.send('PASV\r\n')
 
     content = reply.split("(")[1].split(")")[0].split(",")
     port = (int(content[4]) * 256) + int(content[5])
 
-    print(f"\nTry to connect at {self.host}:{port}")
+    print(f"\nTry to connect at {self.host}:{port}.")
 
     data_socket = Socket(self.host, port)
     if not data_socket.connect():
-      print(f"\tFailed to open data connection\n")
+      print(f"\tFailed to open data connection.\n")
 
     else:
       self.data_connection.set_handler(DataHandler(data_socket.get()))
-      print(f"\tSuccess to open data connection\n")
+      print(f"\tSuccess to open data connection.\n")
+  
+  def type(self, command: str):
+    reply = self.send(f"{command}\r\n")
 
-  def ls(self, directory):
-    reply = self.send([f'LIST {directory}\r\n'])
+    if "200" in reply:
+      data_type = command.split()[1]
+      self.data_connection.set_type(data_type)
+
+  def list(self, command: str):
+    reply = self.send(f'{command}\r\n')
 
     if "150" in reply:
       def callback(server_socket: socket.socket):
-        data = DataHandler.get_data(server_socket)
+        datas = DataHandler.get_data(server_socket)
 
         dirs = []
         files = []
-        for data in self.get_data().split('\r\n'):
-          datas = data.split(" ")
+        for data in datas.decode(self.data_connection.type).split('\r\n'):
+          contents = data.split(" ")
 
           try:
             if data[0] == 'd':
-              dirs.append(datas[-1])
+              dirs.append(contents[-1])
             else:
-              files.append(datas[-1])
+              files.append(contents[-1])
           except:
             pass
 
+        directory = command.split()[1]
+
+        print(f"Contents of {directory}.")
         if dirs:
-          print("directories:")
+          print("Directories:")
           for dir in dirs:
-            print(f' /{dir}')
+            print(f'\t/{dir}')
 
         if files:
-          print("files:")
+          print("Files:")
           for file in files:
-            print(f' {file}')
+            print(f'\t{file}')
       
       self.data_connection.handler.set_callback(callback)
 
-  def mkdir(self, dirname) -> bool:
-    self.send([f'MKD {self.workdir}/{dirname}\r\n'])
+    else:
+      self.data_connection.handler = None
 
-    if self.get_response("257"):
-      return True
+  def retr(self, command):
+    reply = self.send(f'{command}\r\n')
 
-    return False
-  
-  def retreive(self, filename):
-    self.type('I')
-    self.pasv()
-    self.send([f'RETR {filename}\r\n'])
+    arguments = reply.split()[1:]
 
-    filename = os.getcwd() + f"/dataset/{filename}"
+    filename = arguments[0].split("/")[-1]
+    target = ""
 
-    if not os.path.exists(filename):
-      with open(filename, "wb") as file:
-        file.write(self.get_data())
+    print()
+    if len(arguments) == 1:
+      target = Input.get_input_by_confirm(
+        "Make default folder to put downloaded file? (y/n) ",
+        "Which folder? ",
+        "/"
+      )
+
+    elif len(arguments) == 2:
+      target = arguments[1]
+
+    if not len(target):
+      if target[0] != "/":
+        target = "/" + target
+
+      target = self.root + target
+
+      if os.path.isdir(target):
+        def callback(server_socket: socket.socket):
+          print(f"\nDownloading {filename}.")
+          content = DataHandler.get_data(server_socket)
+
+          if self.data_connection.type == "ascii":
+            content = content.decode(self.data_connection.type)
+
+          with open(f"{target}/{filename}", self.data_connection.get_write_type()) as file:
+            file.write(content)
+          
+          print("\tDownload success.\n")
+
+        self.data_connection.handler.set_callback(callback)
+
+    else:
+      print("\nDownload failed, please specify the target directory.\n")
+      self.data_connection.handler = None
 
   def store(self, filename, targetdir = ""):
     self.type('I')
@@ -156,8 +198,14 @@ class FTPClient:
 
       if command:
         try:
-          if command == "PASV":
+          if "PASV" in command:
             self.pasv()
+
+          elif "TYPE" in command:
+            self.type(command)
+
+          elif "LIST" in command or "LS" in command:
+            self.list(command)
 
           if command in ["LIST", "LS", "RETR", "STOR"]:
             commands = command.split()
