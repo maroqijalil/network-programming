@@ -8,7 +8,7 @@ class Socket:
     self.host = host
     self.port = port
   
-  def connect(self, listen_for: int = 1):
+  def connect(self):
     try:
       self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
       try:
@@ -16,8 +16,7 @@ class Socket:
       except AttributeError:
         pass
 
-      self.socket.bind((self.host, self.port))
-      self.socket.listen(listen_for)
+      self.socket.connect((self.host, self.port))
 
       return True
 

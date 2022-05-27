@@ -13,12 +13,12 @@ class DataHandler(Thread):
 
     self.socket = data_socket
     
-    self.client_socket: socket.socket = None
+    self.server_socket: socket.socket = None
 
-    self.callback: Callable[[socket.socket], Reply] = None
+    self.callback: Callable[[socket.socket], None] = None
     self.is_running = True
 
-    self.reply: Reply = None
+    self.is_executed: bool = False
 
   def __del__(self) -> None:
     self.socket.close()
@@ -26,17 +26,16 @@ class DataHandler(Thread):
   def close(self) -> None:
     self.is_running = False
   
-  def set_callback(self, callback: Callable[[socket.socket], Reply]) -> None:
+  def set_callback(self, callback: Callable[[socket.socket], None]) -> None:
     self.callback = callback
 
   def run(self):
     while self.is_running:
-      if not self.client_socket:
-        self.client_socket, _ = self.socket.accept()
-      
       if self.callback:
-        self.reply = self.callback(self.client_socket)
-        self.client_socket.close()
+        self.is_executed = True
+
+        self.callback(self.server_socket)
+        self.server_socket.close()
 
         self.callback = None
 
@@ -54,23 +53,27 @@ class DataHandler(Thread):
     start_time = time.perf_counter()
 
     while True:
-      reply = data_handler.reply
-      if reply:
-        command_socket.sendall(reply.get().encode("utf-8"))
+      if data_handler.is_executed:
+        print(command_socket.recv(1024).decode("utf-8"))
         break
 
       if time.perf_counter() - start_time > 3.0:
         break
-    
+
     callback()
 
+  @staticmethod
+  def get_data(server_socket: socket.socket) -> bytes:
+    data = b""
+    while True:
+      buffer = server_socket.recv(1024)
 
-class FileRenaming:
-  def __init__(self, source) -> None:
-    self.source = source
+      if buffer:
+        data += buffer
+      else:
+        break
 
-  def execute(self, target) -> None:
-    os.rename(self.source, target)
+    return data
 
 
 class DataConnection:
@@ -115,12 +118,6 @@ class DataConnection:
       self.handler = None
 
     self.executor = None
-
-  def check_connection(self) -> Optional[Reply]:
-    if not self.handler:
-      return Reply(425, "Use PORT or PASV first.")
-
-    return None
   
   def run(self, command_socket: socket.socket) -> None:
     if self.handler and self.handler.callback and not self.executor:
