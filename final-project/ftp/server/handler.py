@@ -157,22 +157,20 @@ class CommandHandler(Thread):
     return None
   
   def validate_user(self, user) -> Reply:
-    self.user = self.user.replace(user, "")
-
-    if len(self.user):
+    if self.user != user:
       return Reply(530, "Permission denied.")
     
+    self.user = ""
     return Reply(331, "Please specify the password.")
   
   def validate_password(self, passwd) -> Reply:
     if len(self.user):
       return Reply(503, "Login with USER first.")
 
-    self.passwd = self.passwd.replace(passwd, "")
-
-    if len(self.passwd):
+    if self.passwd != passwd:
       return Reply(530, "Login incorrect.")
     
+    self.passwd = ""
     return Reply(230, "Login successful.")
 
   def handle_directory(self, path: str) -> str:
