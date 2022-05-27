@@ -1,5 +1,5 @@
 from utils import Config
-from server import FTPServer
+from ftp import FTPServer
 
 
 if __name__ == '__main__':

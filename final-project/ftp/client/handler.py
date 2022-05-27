@@ -348,11 +348,11 @@ class CommandHandler(Thread):
   def help(self) -> Reply:
     self.socket.sendall(("""
       214-The following commands are recognized.\r\n
-      CD  CWD  DELE HELP LIST LS   MKD  PASS PASV\r\n
-      PWD QUIT RETR RMD  RNFR RNTO STOR TYPE USER\r\n
+      CWD  DELE HELP LIST MKD  PASS PASV PWD
+      QUIT RETR RMD  RNFR RNTO STOR TYPE USER 
       """).encode("utf-8"))
     return Reply(214, "Help OK.")
-
+  
   def dele(self, filename) -> Reply:
     if filename:
       filepath = self.handle_directory(filename)
@@ -416,7 +416,7 @@ class CommandHandler(Thread):
             if command == "PASS":
               reply = self.validate_password(argument)
 
-            elif command == "CWD" or command == "CD":
+            elif command == "CWD":
               reply = self.cwd(argument)
 
             elif command == "TYPE":
@@ -446,9 +446,9 @@ class CommandHandler(Thread):
             elif command == "RMD":
               reply = self.rmd(argument)
 
-            elif command in ["LIST", "LS", "RETR", "STOR"]:
+            elif command in ["LIST", "RETR", "STOR"]:
               if not self.data_connection.check_connection():
-                if command == "LIST" or command == "LS":
+                if command == "LIST":
                   reply = self.ls(argument)
 
                 elif command == "RETR":

@@ -1,5 +1,4 @@
 from configparser import ConfigParser
-import socket
 from handler import CommandHandler
 from typing import List
 from utils import Socket
