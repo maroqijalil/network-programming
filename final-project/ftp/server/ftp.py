@@ -31,9 +31,7 @@ class FTPServer:
     if self.socket is Socket:
       return
 
-    is_running = True
-
-    while is_running:
+    while True:
       try:
         read_ready_sockets, _, _ = select.select([self.socket], [], [])
 
@@ -46,7 +44,7 @@ class FTPServer:
             self.threads.append(client)
 
       except KeyboardInterrupt:
-        is_running = False
+        break
 
     self.socket.close()
 

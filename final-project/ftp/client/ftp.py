@@ -16,10 +16,6 @@ class FTPClient:
 
     self.responses: List[str] = []
 
-  def close_data_connection(self) -> None:
-    self.data_socket.close()
-    self.data_socket = None
-
   def __del__(self):
     self.send('QUIT\r\n')
     self.socket.close()
@@ -41,31 +37,6 @@ class FTPClient:
     print(response)
 
     self.responses.extend(response)
-
-    return response
-
-  def get_response(self, substr) -> str:
-    for response in self.responses:
-      if substr in response:
-        return response
-
-    return ""
-
-  def get_content(self, code) -> str:
-    response = self.get_response(code)
-    return response.replace(code, "").strip()
-
-  def get_data(self) -> str:
-    response = ""
-    while True:
-      data = self.data_socket.recv(1024)
-
-      if data:
-        response += data.strip().decode('utf-8')
-      else:
-        break
-
-    self.close_data_connection()
 
     return response
 
@@ -232,36 +203,40 @@ class FTPClient:
     if self.socket is Socket:
       return
 
-    while self.is_running:
-      command = input(">> ")
+    while True:
+      try:
+        command = input(">> ")
 
-      if command:
-        try:
-          if "PASV" in command:
-            self.pasv()
+        if command:
+          try:
+            if "PASV" in command:
+              self.pasv()
 
-          elif "TYPE" in command:
-            self.type(command)
+            elif "TYPE" in command:
+              self.type(command)
 
-          elif "LIST" in command or "LS" in command:
-            self.list(command)
+            elif "LIST" in command or "LS" in command:
+              self.list(command)
 
-          elif "RETR" in command:
-            self.retr(command)
+            elif "RETR" in command:
+              self.retr(command)
 
-          elif "STOR" in command:
-            self.stor(command)
+            elif "STOR" in command:
+              self.stor(command)
 
-          else:
-            print(self.send(command))
+            else:
+              print(self.send(command))
 
-          self.data_connection.run(self.socket)
+            self.data_connection.run(self.socket)
 
-        except Exception as e:
-          print(e)
-          pass
+          except Exception as e:
+            print(e)
+            pass
 
-      else:
+        else:
+          break
+
+      except KeyboardInterrupt:
         break
 
     print()
