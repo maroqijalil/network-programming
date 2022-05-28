@@ -2,7 +2,7 @@ import socket
 import os
 from handler import DataConnection, DataHandler
 from typing import List
-from utils import Input, Socket
+from utils import Path, Input, Socket
 
 
 class FTPClient:
@@ -126,68 +126,107 @@ class FTPClient:
             print(f'\t{file}')
       
       self.data_connection.handler.set_callback(callback)
+      return
 
-    else:
-      self.data_connection.handler = None
+    self.data_connection.handler = None
 
-  def retr(self, command):
+  def handle_directory(self, directory) -> str:
+    return Path.merge(self.root, directory)
+
+  def retr(self, command: str):
     reply = self.send(f'{command}\r\n')
 
-    arguments = reply.split()[1:]
+    if "150" in reply:
+      arguments = command.split()[1:]
 
-    filename = arguments[0].split("/")[-1]
-    target = ""
+      filename = arguments[0].split("/")[-1]
+      filepath = ""
 
-    print()
-    if len(arguments) == 1:
-      target = Input.get_input_by_confirm(
-        "Make default folder to put downloaded file? (y/n) ",
-        "Which folder? ",
-        "/"
-      )
+      print()
+      if len(arguments) == 1:
+        filepath = Input.get_input_by_confirm(
+          f"Make the same filename ({filename}) to put downloaded file? (y/n) ",
+          "What is the filename? ",
+          f"/{filename}"
+        )
 
-    elif len(arguments) == 2:
-      target = arguments[1]
+      elif len(arguments) == 2:
+        filepath = arguments[1]
 
-    if not len(target):
-      if target[0] != "/":
-        target = "/" + target
+      if len(filepath):
+        filepath = self.handle_directory(filepath)
+        filename = filepath.split('/')[-1]
+        filedir = filepath.replace(f"/{filename}", "")
 
-      target = self.root + target
+        if os.path.isdir(filedir):
+          def callback(server_socket: socket.socket):
+            print(f"\nDownloading {arguments[0]}.")
+            content = DataHandler.get_data(server_socket)
 
-      if os.path.isdir(target):
-        def callback(server_socket: socket.socket):
-          print(f"\nDownloading {filename}.")
-          content = DataHandler.get_data(server_socket)
+            if self.data_connection.type == "ascii":
+              content = content.decode(self.data_connection.type)
 
-          if self.data_connection.type == "ascii":
-            content = content.decode(self.data_connection.type)
+            with open(filepath, self.data_connection.get_write_type()) as file:
+              file.write(content)
 
-          with open(f"{target}/{filename}", self.data_connection.get_write_type()) as file:
-            file.write(content)
+            print("\tDownload success.\n")
+
+          self.data_connection.handler.set_callback(callback)
+          return
+
+        else:
+          print("\nDownload failed, directory not found.\n")
+
+      else:
+        print("\nDownload failed, please specify the target filename.\n")
+
+    self.data_connection.handler = None
+
+  def stor(self, command: str):
+    reply = self.send(f'{command}\r\n')
+
+    if "150" in reply:
+      arguments = command.split()[1:]
+
+      filename = arguments[0].split('/')[-1]
+      filepath = ""
+
+      print()
+      if len(arguments) == 1:
+        filepath = Input.get_input_by_confirm(
+          f"Choose the same filename ({filename}) to upload? (y/n) ",
+          "Which file? ",
+          f"/{filename}"
+        )
+
+      elif len(arguments) == 2:
+        filepath = arguments[0]
+
+      if len(filepath):
+        target_path = self.handle_directory(filepath)
+
+        if os.path.isfile(target_path):
+          def callback(server_socket: socket.socket):
+            print(f"\nUploading {filepath}.")
+
+            content = ""
+            with open(filepath, self.data_connection.get_read_type()) as file:
+              content = file.read()
+
+            if self.data_connection.type == "ascii":
+              content = content.encode(self.data_connection.type)
+
+            server_socket.sendall(content)
           
-          print("\tDownload success.\n")
+          self.data_connection.handler.set_callback(callback)
 
-        self.data_connection.handler.set_callback(callback)
+        else:
+          print("\nUpload failed, file not found.\n")
 
-    else:
-      print("\nDownload failed, please specify the target directory.\n")
-      self.data_connection.handler = None
+      else:
+        print("\nUpload failed, please specify the target filename.\n")
 
-  def store(self, filename, targetdir = ""):
-    self.type('I')
-    self.pasv()
-    filepath = os.getcwd() + "/dataset/" + filename
-
-    if os.path.exists(filepath):
-      with open(filepath, 'rb') as file:
-        self.data_socket.sendall(file.read())
-        self.close_data_connection()
-
-        self.send([f'STOR {filename}\r\n'])
-
-    else:
-      raise Exception(f"file not found in {filepath}")
+    self.data_connection.handler = None
 
   def run(self) -> None:
     if self.socket is Socket:
@@ -207,79 +246,16 @@ class FTPClient:
           elif "LIST" in command or "LS" in command:
             self.list(command)
 
-          if command in ["LIST", "LS", "RETR", "STOR"]:
-            commands = command.split()
-            command = commands[0]
+          elif "RETR" in command:
+            self.retr(command)
 
-            argument = ""
-            if len(commands) > 1:
-              argument = commands[1]
-
-            if command == "USER":
-              reply = self.validate_user(argument)
-
-            elif command == "QUIT":
-              reply = Reply(221, "Goodbye.")
-              self.is_running = False
-
-            elif not self.check_auth():
-              reply = self.check_auth()
-
-              if command == "PASS":
-                reply = self.validate_password(argument)
-
-              elif command == "CWD":
-                reply = self.cwd(argument)
-
-              elif command == "TYPE":
-                reply = self.type(argument)
-
-              elif command == "PASV":
-                reply = self.pasv()
-
-              elif command == "RNFR":
-                reply = self.rnfr(argument)
-
-              elif command == "RNTO":
-                reply = self.rnto(argument)
-
-              elif command == "MKD":
-                reply = self.mkd(argument)
-
-              elif command == "PWD":
-                reply = self.pwd()
-
-              elif command == "HELP":
-                reply = self.help()
-
-              elif command == "DELE":
-                reply = self.dele(argument)
-
-              elif command == "RMD":
-                reply = self.rmd(argument)
-
-              elif command in ["LIST", "RETR", "STOR"]:
-                if not self.data_connection.check_connection():
-                  if command == "LIST":
-                    reply = self.ls(argument)
-
-                  elif command == "RETR":
-                    reply = self.retr(argument)
-
-                  elif command == "STOR":
-                    reply = self.stor(argument)
-
-                else:
-                  reply = self.data_connection.check_connection()
-
-            if self.reply:
-              reply = self.reply + reply
-              self.reply = None
-
-            self.data_connection.run(self.socket)
+          elif "STOR" in command:
+            self.stor(command)
 
           else:
             print(self.send(command))
+
+          self.data_connection.run(self.socket)
 
         except Exception as e:
           print(e)

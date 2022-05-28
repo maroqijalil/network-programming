@@ -70,6 +70,12 @@ class Config:
             config[items[0]] = items[1]
 
     else:
-      raise Exception("The config isn't found!")
+      raise Exception("The config not found!")
 
     return config
+
+
+class FilePath:
+  @staticmethod
+  def merge(self, first: str, second: str) -> str:
+    return f"{first}/{second}"

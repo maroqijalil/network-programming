@@ -1,7 +1,7 @@
 from random import randint
 from threading import Thread
 from typing import Callable, Optional
-from utils import Reply, Socket
+from utils import FilePath, Reply, Socket
 import os
 import socket
 import time
@@ -175,7 +175,7 @@ class CommandHandler(Thread):
 
   def handle_directory(self, path: str) -> str:
     if path[0] != "/":
-      path = self.workdir + path
+      path = FilePath.merge(self.workdir, path)
 
     return self.root + path
 
@@ -211,14 +211,14 @@ class CommandHandler(Thread):
       if data_socket.connect():
         self.data_connection.set_handler(DataHandler(data_socket.get()))
 
-        address = self.host.split('.')
+        address = self.host.replace('.', ',')
         port = [int(port / 256), (port % 256)]
 
-        return Reply(227, f"Entering Passive Mode ({address[0]},{address[1]},{address[2]},{address[3]},{port[0]},{port[1]}).")
+        return Reply(227, f"Entering Passive Mode ({address},{port[0]},{port[1]}).")
 
     return Reply(421, "Failed to enter Passive Mode.")
 
-  def ls(self, directory: str = "") -> Reply:
+  def ls(self, directory: str) -> Reply:
     directory = self.handle_directory(directory)
 
     def callback(client_socket: socket.socket) -> Reply:
@@ -246,28 +246,31 @@ class CommandHandler(Thread):
     if filename:
       callback = None
 
-      try:
-        filepath = self.handle_directory(filename)
-        content = ""
+      filepath = self.handle_directory(filename)
+      filesize = 0
 
-        if os.path.isfile(filepath):
-          with open(filepath, self.data_connection.get_read_type()) as file:
-            content = file.read()
+      if os.path.isfile(filepath):
+        filesize = os.path.getsize(filepath)
 
-          if self.data_connection.type == "ascii":
-            content = content.encode(self.data_connection.type)
+        def callback(client_socket: socket.socket) -> Reply:
+          try:
+            content = ""
+            with open(filepath, self.data_connection.get_read_type()) as file:
+              content = file.read()
 
-          def callback(client_socket: socket.socket) -> Reply:
+            if self.data_connection.type == "ascii":
+              content = content.encode(self.data_connection.type)
+
             client_socket.sendall(content)
             return Reply(226, "Transfer complete.")
 
-      except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+          except Exception as e:
+            print(e)
+            return Reply(451, "Requested action aborted. Local error in processing.")
 
       if callback:
         self.data_connection.handler.set_callback(callback)
-        return Reply(150, f"Opening {self.data_connection.get_mode_type()} mode data connection for {filename} ({len(content)} bytes).")
+        return Reply(150, f"Opening {self.data_connection.get_mode_type()} mode data connection for {filename} ({filesize} bytes).")
 
       else:
         self.data_connection.handler = None
@@ -289,9 +292,8 @@ class CommandHandler(Thread):
             else:
               break
 
-          if not os.path.isfile(filepath):
-            with open(filepath, self.data_connection.get_write_type()) as file:
-              file.write(content)
+          with open(filepath, self.data_connection.get_write_type()) as file:
+            file.write(content)
 
           return Reply(226, "Transfer complete.")
 
