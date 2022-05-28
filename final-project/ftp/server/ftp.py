@@ -46,9 +46,11 @@ class FTPServer:
       except KeyboardInterrupt:
         break
 
+    print("\nClosing the server.")
     self.socket.close()
 
+    print("Checking the connected clients by threads.")
     for client in self.threads:
+      if client.is_alive():
+        print(client.getName(), "is still alive")
       client.join()
-
-    print()

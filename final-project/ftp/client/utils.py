@@ -48,9 +48,9 @@ class Input:
 class Path:
   @staticmethod
   def merge(first: str, second: str) -> str:
-    if second[0] != "/":
+    if len(second) and second[0] != "/":
       second = "/" + second
-    if second[-1] == "/":
+    if (len(second) > 1) and second[-1] == "/":
       second = second[:-1]
 
     return f"{first}{second}"

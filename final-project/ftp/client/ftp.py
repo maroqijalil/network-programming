@@ -14,11 +14,15 @@ class FTPClient:
 
     self.data_connection: DataConnection = DataConnection()
 
-    self.responses: List[str] = []
+    self.replies: List[str] = []
 
   def __del__(self):
     self.send('QUIT\r\n')
     self.socket.close()
+
+    print("Summary:")
+    for message in self.replies:
+      print(message)
 
   def connect(self) -> bool:
     if self.socket.connect():
@@ -31,14 +35,16 @@ class FTPClient:
   def send(self, command: str) -> str:
     self.socket.send(command.encode('utf-8'))
 
-    response = self.socket.recv(1024)
-    response = response.decode('utf-8').split('\r\n')
+    buffer = self.socket.recv(1024).decode('utf-8')
+    reply = buffer.strip().split('\r\n')
 
-    print(response)
+    for message in reply:
+      print(message)
+    print()
 
-    self.responses.extend(response)
+    self.replies.extend(reply)
 
-    return response
+    return buffer
 
   def pasv(self):
     reply = self.send('PASV\r\n')
@@ -225,7 +231,7 @@ class FTPClient:
               self.stor(command)
 
             else:
-              print(self.send(command))
+              self.send(command)
 
             self.data_connection.run(self.socket)
 

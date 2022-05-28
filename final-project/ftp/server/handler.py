@@ -1,7 +1,7 @@
 from random import randint
 from threading import Thread
 from typing import Callable, Optional
-from utils import FilePath, Reply, Socket
+from utils import Path, Reply, Socket
 import os
 import socket
 import time
@@ -174,10 +174,7 @@ class CommandHandler(Thread):
     return Reply(230, "Login successful.")
 
   def handle_directory(self, path: str) -> str:
-    if path[0] != "/":
-      path = FilePath.merge(self.workdir, path)
-
-    return self.root + path
+    return Path.merge(self.root, path)
 
   def cwd(self, directory: str) -> Reply:
     if directory:
@@ -235,8 +232,7 @@ class CommandHandler(Thread):
         return Reply(226, "Directory send OK.")
 
       except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+        return Reply.handle_error(e)
 
     self.data_connection.handler.set_callback(callback)
 
@@ -265,8 +261,7 @@ class CommandHandler(Thread):
             return Reply(226, "Transfer complete.")
 
           except Exception as e:
-            print(e)
-            return Reply(451, "Requested action aborted. Local error in processing.")
+            return Reply.handle_error(e)
 
       if callback:
         self.data_connection.handler.set_callback(callback)
@@ -298,8 +293,7 @@ class CommandHandler(Thread):
           return Reply(226, "Transfer complete.")
 
         except Exception as e:
-          print(e)
-          return Reply(451, "Requested action aborted. Local error in processing.")
+          return Reply.handle_error(e)
 
       self.data_connection.handler.set_callback(callback)
 
@@ -325,8 +319,7 @@ class CommandHandler(Thread):
         return Reply(250, "Rename successful.")
 
       except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+        return Reply.handle_error(e)
 
     return Reply(550, "Rename failed.")
 
@@ -337,8 +330,7 @@ class CommandHandler(Thread):
         return Reply(250, f"\"{self.workdir + directory}\" created.")
 
       except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+        return Reply.handle_error(e)
 
     return Reply(550, "Create directory operation failed.")
 
@@ -346,11 +338,9 @@ class CommandHandler(Thread):
     return Reply(257, f"\"{self.workdir}\" is the current directory.")
 
   def help(self) -> Reply:
-    self.socket.sendall(("""
-      214-The following commands are recognized.\r\n
-      CD  CWD  DELE HELP LIST LS   MKD  PASS PASV\r\n
-      PWD QUIT RETR RMD  RNFR RNTO STOR TYPE USER\r\n
-      """).encode("utf-8"))
+    self.socket.sendall(("214-The following commands are recognized.\r\n" +
+      "CD  CWD  DELE HELP LIST LS   MKD  PASS PASV\r\n" +
+      "PWD QUIT RETR RMD  RNFR RNTO STOR TYPE USER\r\n").encode("utf-8"))
     return Reply(214, "Help OK.")
 
   def dele(self, filename) -> Reply:
@@ -364,8 +354,7 @@ class CommandHandler(Thread):
           return Reply(250, "Delete operation successful.")
       
       except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+        return Reply.handle_error(e)
 
     return Reply(550, "Delete operation failed.")
   
@@ -380,8 +369,7 @@ class CommandHandler(Thread):
           return Reply(250, "Remove directory operation successful.")
       
       except Exception as e:
-        print(e)
-        return Reply(451, "Requested action aborted. Local error in processing.")
+        return Reply.handle_error(e)
 
     return Reply(550, "Remove directory operation failed.")
 
@@ -410,13 +398,11 @@ class CommandHandler(Thread):
             reply = Reply(221, "Goodbye.")
             self.is_running = False
 
+          elif command == "PASS":
+            reply = self.validate_password(argument)
+
           elif not self.check_auth():
-            reply = self.check_auth()
-
-            if command == "PASS":
-              reply = self.validate_password(argument)
-
-            elif command == "CWD" or command == "CD":
+            if command == "CWD" or command == "CD":
               reply = self.cwd(argument)
 
             elif command == "TYPE":
@@ -460,6 +446,9 @@ class CommandHandler(Thread):
               else:
                 reply = self.data_connection.check_connection()
 
+          else:
+            reply = self.check_auth()
+
           if self.reply:
             reply = self.reply + reply
             self.reply = None
@@ -469,8 +458,7 @@ class CommandHandler(Thread):
           self.socket.sendall(reply.get().encode("utf-8"))
 
         except Exception as e:
-          print(e)
-          pass
+          self.socket.sendall(Reply.handle_error(e).get().encode("utf-8"))
 
       else:
         break

@@ -44,10 +44,14 @@ class Reply:
       reply.reply = self.reply
 
     return reply
-    
 
   def get(self) -> str:
     return self.reply
+  
+  @staticmethod
+  def handle_error(e):
+    print(e)
+    return Reply(451, "Requested action aborted. Local error in processing.")
 
 
 class Config:
@@ -75,7 +79,12 @@ class Config:
     return config
 
 
-class FilePath:
+class Path:
   @staticmethod
-  def merge(self, first: str, second: str) -> str:
-    return f"{first}/{second}"
+  def merge(first: str, second: str) -> str:
+    if len(second) and second[0] != "/":
+      second = "/" + second
+    if (len(second) > 1) and second[-1] == "/":
+      second = second[:-1]
+
+    return f"{first}{second}"

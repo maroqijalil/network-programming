@@ -5,8 +5,8 @@ from ftp import FTPClient
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
-  parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='localhost')
-  parser.add_argument('--port', help='specify the port which is used', type=int, default=21)
+  parser.add_argument('--host', help='specify the host that will be connected to', type=str, default='127.0.0.1')
+  parser.add_argument('--port', help='specify the port which is used', type=int, default=60000)
 
   args = parser.parse_args()
 
