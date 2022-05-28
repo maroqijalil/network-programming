@@ -174,12 +174,24 @@ class CommandHandler(Thread):
     return Reply(230, "Login successful.")
 
   def handle_directory(self, path: str) -> str:
-    return Path.merge(self.root, path)
+    directory = self.workdir
+    if len(path):
+      if path[0] != "/":
+        directory += path
+      
+      else:
+        directory = path
+    
+    return Path.merge(self.root, directory)
 
   def cwd(self, directory: str) -> Reply:
     if directory:
       if os.path.isdir(self.handle_directory(directory)):
-        self.workdir += directory
+        if directory[0] != "/":
+          self.workdir += directory
+        
+        else:
+          self.workdir = directory
 
         return Reply(250, "Directory successfully changed.")
 
