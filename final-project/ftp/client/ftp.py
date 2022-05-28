@@ -47,6 +47,10 @@ class FTPClient:
     return buffer
 
   def pasv(self):
+    if self.data_connection.handler:
+      print(f"There is still connection on transfering data.\n")
+      return
+
     reply = self.send('PASV\r\n')
 
     content = reply.split("(")[1].split(")")[0].split(",")
@@ -89,7 +93,10 @@ class FTPClient:
           except:
             pass
 
-        directory = command.split()[1]
+        directory = "/"
+        commands = command.split()
+        if len(commands) > 1:
+          directory = commands[1]
 
         print(f"Contents of {directory}.")
         if dirs:
@@ -238,9 +245,6 @@ class FTPClient:
           except Exception as e:
             print(e)
             pass
-
-        else:
-          break
 
       except KeyboardInterrupt:
         break

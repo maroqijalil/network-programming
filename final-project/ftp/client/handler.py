@@ -10,15 +10,10 @@ class DataHandler(Thread):
 
     self.socket = data_socket
     
-    self.server_socket: socket.socket = None
-
     self.callback: Callable[[socket.socket], None] = None
     self.is_running = True
 
     self.is_executed: bool = False
-
-  def __del__(self) -> None:
-    self.socket.close()
 
   def close(self) -> None:
     self.is_running = False
@@ -31,8 +26,8 @@ class DataHandler(Thread):
       if self.callback:
         self.is_executed = True
 
-        self.callback(self.server_socket)
-        self.server_socket.close()
+        self.callback(self.socket)
+        self.socket.close()
 
         self.callback = None
 
