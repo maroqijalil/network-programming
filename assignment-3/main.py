@@ -142,6 +142,12 @@ def problem_9(args: argparse.Namespace):
 
   ftp.retreive(filename)
 
+def problem_10(args: argparse.Namespace):
+  ftp = get_ftp(args)
+
+  ftp.send(['TYPE BINARY\r\n'])
+
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Connect HTTPClient on defined host and port')
@@ -186,6 +192,9 @@ if __name__ == '__main__':
 
         if "9" in command:
           problem_9(args)
+
+        if "10" in command:
+          problem_10(args)
 
       except Exception as e:
         print(e)

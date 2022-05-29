@@ -118,7 +118,7 @@ class DataConnection:
 
   def check_connection(self) -> Optional[Reply]:
     if not self.handler:
-      return Reply(425, "Use PORT or PASV first.")
+      return Reply(425, "Use PASV first.")
 
     return None
   
@@ -198,8 +198,11 @@ class CommandHandler(Thread):
     return Reply(550, "Failed to change directory.")
 
   def type(self, type: str) -> Reply:
-    self.data_connection.set_type(type)
-    return Reply(200, f"Switching to {self.data_connection.get_mode_type()} mode.")
+    if type in ["A", "I"]:
+      self.data_connection.set_type(type)
+      return Reply(200, f"Switching to {self.data_connection.get_mode_type()} mode.")
+    else:
+      return Reply(500, "Unrecognised TYPE command.")
 
   def pasv(self) -> Reply:
     port = None
