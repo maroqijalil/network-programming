@@ -177,7 +177,7 @@ class CommandHandler(Thread):
     directory = self.workdir
     if len(path):
       if path[0] != "/":
-        directory += path
+        directory += "/" + path
       
       else:
         directory = path
@@ -345,6 +345,8 @@ class CommandHandler(Thread):
     if directory:
       try:
         os.mkdir(self.handle_directory(directory))
+        if self.workdir != "/":
+          directory = "/" + directory
         return Reply(250, f"\"{self.workdir + directory}\" created.")
 
       except Exception as e:
