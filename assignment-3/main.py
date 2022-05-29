@@ -145,7 +145,7 @@ def problem_9(args: argparse.Namespace):
 def problem_10(args: argparse.Namespace):
   ftp = get_ftp(args)
 
-  ftp.send(['TYPE BINARY\r\n'])
+  ftp.send(['TYPE\r\n'])
 
 
 

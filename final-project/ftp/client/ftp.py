@@ -194,7 +194,7 @@ class FTPClient:
             print(f"\nUploading {filepath}.")
 
             content = ""
-            with open(filepath, self.data_connection.get_read_type()) as file:
+            with open(target_path, self.data_connection.get_read_type()) as file:
               content = file.read()
 
             if self.data_connection.type == "ascii":

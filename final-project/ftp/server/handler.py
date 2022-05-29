@@ -292,6 +292,8 @@ class CommandHandler(Thread):
       def callback(client_socket: socket.socket) -> Reply:
         try:
           filepath = self.handle_directory(filename)
+          print(filepath)
+          
           content = b""
 
           while True:
@@ -303,8 +305,9 @@ class CommandHandler(Thread):
               break
 
           with open(filepath, self.data_connection.get_write_type()) as file:
+            if (self.data_connection.type == "ascii"):
+              content = content.decode("utf-8")
             file.write(content)
-
           return Reply(226, "Transfer complete.")
 
         except Exception as e:
