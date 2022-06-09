@@ -20,9 +20,14 @@ class FTPClient:
     self.send('QUIT\r\n')
     self.socket.close()
 
+    self.summary()
+
+  def summary(self):
     print("Summary:")
     for message in self.replies:
       print(message)
+    
+    self.replies = []
 
   def connect(self) -> bool:
     if self.socket.connect():
@@ -254,3 +259,4 @@ class FTPClient:
         break
 
     print()
+    self.summary()
