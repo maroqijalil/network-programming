@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 from handler import CommandHandler
 from typing import List
 from utils import Socket
@@ -6,7 +5,7 @@ import select
 
 
 class FTPServer:
-  def __init__(self, config: ConfigParser) -> None:
+  def __init__(self, config: dict) -> None:
     self.socket = Socket(config['host'], int(config['port']))
 
     self.host = config['host']

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sudo apt install expect -y
+
 sudo rm -rf /home/netpro/server
 
 sudo cp -r ./server /home/netpro

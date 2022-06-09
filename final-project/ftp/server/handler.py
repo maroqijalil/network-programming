@@ -1,4 +1,3 @@
-from fileinput import filename
 from random import randint
 from threading import Thread
 from typing import Callable, List, Optional
