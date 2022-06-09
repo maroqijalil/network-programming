@@ -201,6 +201,7 @@ class FTPClient:
               content = content.encode(self.data_connection.type)
 
             server_socket.sendall(content)
+            print(f"\n{filepath} uploaded.")
           
           self.data_connection.handler.set_callback(callback)
 
@@ -241,6 +242,9 @@ class FTPClient:
               self.send(command)
 
             self.data_connection.run(self.socket)
+
+            if "QUIT" in command:
+              break
 
           except Exception as e:
             print(e)

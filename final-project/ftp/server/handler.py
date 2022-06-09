@@ -1,6 +1,7 @@
+from fileinput import filename
 from random import randint
 from threading import Thread
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 from utils import Path, Reply, Socket
 import os
 import socket
@@ -201,8 +202,9 @@ class CommandHandler(Thread):
     if type in ["A", "I"]:
       self.data_connection.set_type(type)
       return Reply(200, f"Switching to {self.data_connection.get_mode_type()} mode.")
+
     else:
-      return Reply(500, "Unrecognised TYPE command.")
+      return Reply(500, "Unrecognized TYPE command.")
 
   def pasv(self) -> Reply:
     port = None
@@ -253,10 +255,11 @@ class CommandHandler(Thread):
 
     return Reply(150, "Here comes the directory listing.")
 
-  def retr(self, filename: str) -> Reply:
-    if filename:
+  def retr(self, filenames: List[str]) -> Reply:
+    if len(filenames):
       callback = None
 
+      filename = filenames[0]
       filepath = self.handle_directory(filename)
       filesize = 0
 
@@ -287,8 +290,13 @@ class CommandHandler(Thread):
 
     return Reply(550, "Failed to open file.")
 
-  def stor(self, filename: str) -> Reply:
-    if filename:
+  def stor(self, filenames: str) -> Reply:
+    if len(filenames):
+      filename = filenames[0]
+
+      if len(filenames) == 2:
+        filename = filenames[1]
+
       def callback(client_socket: socket.socket) -> Reply:
         try:
           filepath = self.handle_directory(filename)
@@ -405,9 +413,9 @@ class CommandHandler(Thread):
           commands = command.split()
           command = commands[0]
 
-          argument = ""
+          argument = [""]
           if len(commands) > 1:
-            argument = commands[1]
+            argument = commands[1:]
 
           reply = Reply()
 
@@ -416,33 +424,33 @@ class CommandHandler(Thread):
             "RMD", "RNFR", "RNTO", "STOR", "TYPE", "USER"]:
 
             if command == "USER":
-              reply = self.validate_user(argument)
+              reply = self.validate_user(argument[0])
 
             elif command == "QUIT":
               reply = Reply(221, "Goodbye.")
               self.is_running = False
 
             elif command == "PASS":
-              reply = self.validate_password(argument)
+              reply = self.validate_password(argument[0])
 
             elif not self.check_auth():
               if command == "CWD" or command == "CD":
-                reply = self.cwd(argument)
+                reply = self.cwd(argument[0])
 
               elif command == "TYPE":
-                reply = self.type(argument)
+                reply = self.type(argument[0])
 
               elif command == "PASV":
                 reply = self.pasv()
 
               elif command == "RNFR":
-                reply = self.rnfr(argument)
+                reply = self.rnfr(argument[0])
 
               elif command == "RNTO":
-                reply = self.rnto(argument)
+                reply = self.rnto(argument[0])
 
               elif command == "MKD":
-                reply = self.mkd(argument)
+                reply = self.mkd(argument[0])
 
               elif command == "PWD":
                 reply = self.pwd()
@@ -451,15 +459,15 @@ class CommandHandler(Thread):
                 reply = self.help()
 
               elif command == "DELE":
-                reply = self.dele(argument)
+                reply = self.dele(argument[0])
 
               elif command == "RMD":
-                reply = self.rmd(argument)
+                reply = self.rmd(argument[0])
 
               elif command in ["LIST", "LS", "RETR", "STOR"]:
                 if not self.data_connection.check_connection():
                   if command == "LIST" or command == "LS":
-                    reply = self.ls(argument)
+                    reply = self.ls(argument[0])
 
                   elif command == "RETR":
                     reply = self.retr(argument)
